@@ -19,6 +19,13 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -41,7 +48,6 @@ const EMPTY_FORM = {
   department: "",
   phone: "",
   monthlySalary: "",
-  joinDate: "",
 };
 
 export default function EmployeeList() {
@@ -65,7 +71,7 @@ export default function EmployeeList() {
 
   const openAdd = () => {
     setEditingEmp(null);
-    setForm({ ...EMPTY_FORM, joinDate: new Date().toISOString().slice(0, 10) });
+    setForm(EMPTY_FORM);
     setDialogOpen(true);
   };
 
@@ -77,7 +83,6 @@ export default function EmployeeList() {
       department: emp.department,
       phone: emp.phone,
       monthlySalary: String(Number(emp.monthlySalary)),
-      joinDate: emp.joinDate,
     });
     setDialogOpen(true);
   };
@@ -109,7 +114,7 @@ export default function EmployeeList() {
           department: form.department,
           phone: form.phone,
           monthlySalary: salary,
-          joinDate: form.joinDate || new Date().toISOString().slice(0, 10),
+          joinDate: new Date().toISOString().slice(0, 10),
         });
         toast.success("Employee registered");
       }
@@ -278,7 +283,7 @@ export default function EmployeeList() {
                 <Label>Employee ID *</Label>
                 <Input
                   data-ocid="employees.id.input"
-                  placeholder="EMP001"
+                  placeholder="Employee ID"
                   value={form.id}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, id: e.target.value }))
@@ -290,7 +295,7 @@ export default function EmployeeList() {
                 <Label>Full Name *</Label>
                 <Input
                   data-ocid="employees.name.input"
-                  placeholder="John Smith"
+                  placeholder="Full name"
                   value={form.name}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, name: e.target.value }))
@@ -301,20 +306,26 @@ export default function EmployeeList() {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Department *</Label>
-                <Input
-                  data-ocid="employees.department.input"
-                  placeholder="Engineering"
+                <Select
                   value={form.department}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, department: e.target.value }))
+                  onValueChange={(val) =>
+                    setForm((f) => ({ ...f, department: val }))
                   }
-                />
+                >
+                  <SelectTrigger data-ocid="employees.department.input">
+                    <SelectValue placeholder="Select department" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Driver">Driver</SelectItem>
+                    <SelectItem value="Office">Office</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
               <div className="space-y-1.5">
                 <Label>Phone</Label>
                 <Input
                   data-ocid="employees.phone.input"
-                  placeholder="9876543210"
+                  placeholder="Phone number"
                   value={form.phone}
                   onChange={(e) =>
                     setForm((f) => ({ ...f, phone: e.target.value }))
@@ -322,30 +333,17 @@ export default function EmployeeList() {
                 />
               </div>
             </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Monthly Salary (₹) *</Label>
-                <Input
-                  data-ocid="employees.salary.input"
-                  placeholder="25000"
-                  type="number"
-                  value={form.monthlySalary}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, monthlySalary: e.target.value }))
-                  }
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label>Join Date</Label>
-                <Input
-                  data-ocid="employees.joindate.input"
-                  type="date"
-                  value={form.joinDate}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, joinDate: e.target.value }))
-                  }
-                />
-              </div>
+            <div className="space-y-1.5">
+              <Label>Monthly Salary (₹) *</Label>
+              <Input
+                data-ocid="employees.salary.input"
+                placeholder="Amount"
+                type="number"
+                value={form.monthlySalary}
+                onChange={(e) =>
+                  setForm((f) => ({ ...f, monthlySalary: e.target.value }))
+                }
+              />
             </div>
             {form.monthlySalary &&
               !Number.isNaN(Number.parseFloat(form.monthlySalary)) && (

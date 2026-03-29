@@ -1,12 +1,44 @@
-import { ArrowRight, Building2, CheckCircle2, User } from "lucide-react";
-import { motion } from "motion/react";
+import {
+  ArrowRight,
+  Building2,
+  CheckCircle2,
+  Eye,
+  EyeOff,
+  Lock,
+  User,
+} from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
+import { useState } from "react";
 import type { AppView } from "../App";
 
 interface Props {
   onNavigate: (view: AppView) => void;
 }
 
+const MANAGER_PASSWORD = "pavithra@123";
+
 export default function LandingPage({ onNavigate }: Props) {
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+
+  function handleManagerClick() {
+    setShowPasswordModal(true);
+    setPassword("");
+    setError("");
+  }
+
+  function handlePasswordSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (password === MANAGER_PASSWORD) {
+      setShowPasswordModal(false);
+      onNavigate("manager");
+    } else {
+      setError("Incorrect password. Please try again.");
+    }
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-[oklch(0.15_0.025_240)] via-[oklch(0.18_0.04_250)] to-[oklch(0.12_0.02_230)] flex flex-col">
       <header className="px-6 py-5 flex items-center justify-between">
@@ -54,7 +86,7 @@ export default function LandingPage({ onNavigate }: Props) {
           <button
             type="button"
             data-ocid="landing.manager_button"
-            onClick={() => onNavigate("manager")}
+            onClick={handleManagerClick}
             className="group bg-white/5 hover:bg-white/10 border border-white/10 hover:border-primary/50 rounded-2xl p-8 text-left transition-all duration-300 cursor-pointer"
           >
             <div className="w-12 h-12 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center mb-5 group-hover:bg-primary/30 transition-colors">
@@ -129,6 +161,87 @@ export default function LandingPage({ onNavigate }: Props) {
           Built with &hearts; using caffeine.ai
         </a>
       </footer>
+
+      {/* Password Modal */}
+      <AnimatePresence>
+        {showPasswordModal && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm px-4"
+            onClick={(e) => {
+              if (e.target === e.currentTarget) setShowPasswordModal(false);
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+              transition={{ duration: 0.2 }}
+              className="bg-[oklch(0.18_0.03_240)] border border-white/10 rounded-2xl p-8 w-full max-w-sm shadow-2xl"
+            >
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 rounded-xl bg-primary/20 border border-primary/30 flex items-center justify-center">
+                  <Lock className="w-5 h-5 text-primary" />
+                </div>
+                <div>
+                  <h2 className="text-white font-display font-bold text-lg">
+                    Manager Access
+                  </h2>
+                  <p className="text-[oklch(0.6_0.04_240)] text-sm">
+                    Enter your password to continue
+                  </p>
+                </div>
+              </div>
+
+              <form onSubmit={handlePasswordSubmit} className="space-y-4">
+                <div className="relative">
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => {
+                      setPassword(e.target.value);
+                      setError("");
+                    }}
+                    placeholder="Password"
+                    className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white placeholder-[oklch(0.45_0.03_240)] focus:outline-none focus:border-primary/50 focus:bg-white/8 transition-all pr-12"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-[oklch(0.5_0.03_240)] hover:text-white transition-colors"
+                  >
+                    {showPassword ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
+
+                {error && <p className="text-red-400 text-sm">{error}</p>}
+
+                <div className="flex gap-3 pt-1">
+                  <button
+                    type="button"
+                    onClick={() => setShowPasswordModal(false)}
+                    className="flex-1 py-3 rounded-xl border border-white/10 text-[oklch(0.65_0.04_240)] hover:bg-white/5 transition-colors text-sm font-medium"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-3 rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground font-medium text-sm transition-colors"
+                  >
+                    Enter
+                  </button>
+                </div>
+              </form>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

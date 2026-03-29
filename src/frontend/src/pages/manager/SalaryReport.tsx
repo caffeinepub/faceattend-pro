@@ -298,7 +298,7 @@ export default function SalaryReport() {
                 data-ocid="salary.pay.note.input"
                 value={payNote}
                 onChange={(e) => setPayNote(e.target.value)}
-                placeholder="Salary for March 2026"
+                placeholder="Note"
               />
             </div>
           </div>
