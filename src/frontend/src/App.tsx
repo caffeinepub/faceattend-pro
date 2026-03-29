@@ -5,32 +5,23 @@ import EmployeePortal from "./pages/EmployeePortal";
 import LandingPage from "./pages/LandingPage";
 import ManagerPanel from "./pages/ManagerPanel";
 
-const queryClient = new QueryClient();
+const queryClient = new QueryClient({
+  defaultOptions: { queries: { staleTime: 30_000, retry: 1 } },
+});
 
-type View = "landing" | "employee" | "manager";
+export type AppView = "landing" | "manager" | "employee";
 
 export default function App() {
+  const [view, setView] = useState<AppView>("landing");
+
   return (
     <QueryClientProvider client={queryClient}>
-      <AppInner />
+      {view === "landing" && <LandingPage onNavigate={setView} />}
+      {view === "manager" && <ManagerPanel onBack={() => setView("landing")} />}
+      {view === "employee" && (
+        <EmployeePortal onBack={() => setView("landing")} />
+      )}
       <Toaster richColors position="top-right" />
     </QueryClientProvider>
-  );
-}
-
-function AppInner() {
-  const [view, setView] = useState<View>("landing");
-
-  if (view === "employee") {
-    return <EmployeePortal onBack={() => setView("landing")} />;
-  }
-  if (view === "manager") {
-    return <ManagerPanel onBack={() => setView("landing")} />;
-  }
-  return (
-    <LandingPage
-      onEmployee={() => setView("employee")}
-      onManager={() => setView("manager")}
-    />
   );
 }

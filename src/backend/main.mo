@@ -9,7 +9,7 @@ actor {
   include MixinAuthorization(accessControlState);
 
   // ----------------------------------------------------------------
-  // Migration compat (old types kept for stable memory)
+  // Old stable variables kept for migration compatibility (M0169)
   // ----------------------------------------------------------------
   type _OldUserProfile = { name : Text; employeeId : ?Text };
   type _OldEmployee = { id : Text; name : Text; department : Text; position : Text; employeeCode : Text; baseSalary : Nat; joinDate : Text; isActive : Bool };
@@ -19,51 +19,50 @@ actor {
   type _OldLeaveStatus = { #pending; #approved; #rejected };
   type _OldLeave = { id : Text; employeeId : Text; leaveType : _OldLeaveType; startDate : Int; endDate : Int; reason : Text; status : _OldLeaveStatus; approvedBy : Text };
   type _OldHoliday = { id : Text; name : Text; date : Int; description : Text };
+  type _OldLabor = { id : Text; name : Text; phone : Text; salaryType : Text; dailyRate : Nat; overtimeRate : Nat };
+  type _OldAttendanceRecord = { laborId : Text; date : Text; status : Text; multiplierX10 : Nat; checkIn : Text; checkOut : Text; notes : Text };
+  type _OldAdvancePayment = { id : Text; laborId : Text; amount : Nat; date : Text; note : Text };
 
+  // These must be kept to avoid M0169 compatibility errors
   let userProfiles = Map.empty<Principal, _OldUserProfile>();
   let employees = Map.empty<Text, _OldEmployee>();
   let attendanceRecords = Map.empty<Text, _OldAttendance>();
   let leaves = Map.empty<Text, _OldLeave>();
   let holidays = Map.empty<Text, _OldHoliday>();
   let employeePhotos = Map.empty<Text, Blob>();
-
-  type _OldLabor = { id : Text; name : Text; phone : Text; salaryType : Text; dailyRate : Nat; overtimeRate : Nat };
-  type _OldAttendanceRecord = { laborId : Text; date : Text; status : Text; multiplierX10 : Nat; checkIn : Text; checkOut : Text; notes : Text };
-  type _OldAdvancePayment = { id : Text; laborId : Text; amount : Nat; date : Text; note : Text };
-
   let labors = Map.empty<Text, _OldLabor>();
   let attendance = Map.empty<Text, _OldAttendanceRecord>();
   let advances = Map.empty<Text, _OldAdvancePayment>();
+  let descriptorStore = Map.empty<Text, Text>();
 
   // ----------------------------------------------------------------
-  // Previous Employee2 shape (without faceDescriptor) — for migration
+  // Employee storage — reuses _Employee2V1 shape for stable compat.
+  // We repurpose fields:
+  //   dailyRate   -> stores monthlySalary
+  //   faceImageKey -> stores joinDate
+  //   createdAt   -> stores isActive as 1 (true) or 0 (false)
   // ----------------------------------------------------------------
   type _Employee2V1 = {
     id : Text;
     name : Text;
     department : Text;
     phone : Text;
-    dailyRate : Nat;
-    faceImageKey : Text;
-    createdAt : Int;
+    dailyRate : Nat;      // repurposed: stores monthlySalary
+    faceImageKey : Text;  // repurposed: stores joinDate
+    createdAt : Int;      // repurposed: stores isActive (1=true, 0=false)
   };
 
-  // ----------------------------------------------------------------
-  // Current types
-  // ----------------------------------------------------------------
-
-  public type Employee2 = {
+  public type Employee = {
     id : Text;
     name : Text;
     department : Text;
     phone : Text;
-    dailyRate : Nat;
-    faceImageKey : Text;
-    faceDescriptor : Text;
-    createdAt : Int;
+    monthlySalary : Nat;
+    joinDate : Text;
+    isActive : Bool;
   };
 
-  public type AttendanceRecord2 = {
+  public type AttendanceRecord = {
     id : Text;
     employeeId : Text;
     date : Text;
@@ -86,116 +85,99 @@ actor {
     paidAt : Int;
   };
 
-  // ----------------------------------------------------------------
-  // Storage — employeeStore uses migration-compatible V1 type
-  // We store as _Employee2V1 in stable memory and migrate on read
-  // ----------------------------------------------------------------
-
   let employeeStore = Map.empty<Text, _Employee2V1>();
-  let attendanceStore = Map.empty<Text, AttendanceRecord2>();
+  let attendanceStore = Map.empty<Text, AttendanceRecord>();
   let holidayStore = Map.empty<Text, Holiday2>();
   let paymentStore = Map.empty<Text, SalaryPayment>();
 
-  // Helper to upgrade V1 -> current Employee2
-  func upgradeEmployee(e : _Employee2V1) : Employee2 = {
+  func v1ToEmployee(e : _Employee2V1) : Employee = {
     id = e.id;
     name = e.name;
     department = e.department;
     phone = e.phone;
-    dailyRate = e.dailyRate;
-    faceImageKey = e.faceImageKey;
-    faceDescriptor = "";
-    createdAt = e.createdAt;
+    monthlySalary = e.dailyRate;
+    joinDate = e.faceImageKey;
+    isActive = e.createdAt == 1;
+  };
+
+  func employeeToV1(emp : Employee) : _Employee2V1 = {
+    id = emp.id;
+    name = emp.name;
+    department = emp.department;
+    phone = emp.phone;
+    dailyRate = emp.monthlySalary;
+    faceImageKey = emp.joinDate;
+    createdAt = if (emp.isActive) 1 else 0;
   };
 
   // ----------------------------------------------------------------
   // Employee APIs
   // ----------------------------------------------------------------
 
-  public shared func registerEmployee(id : Text, name : Text, department : Text, phone : Text, dailyRate : Nat, faceImageKey : Text, faceDescriptor : Text, createdAt : Int) : async Employee2 {
-    // Store without faceDescriptor in stable map (migration compat), keep descriptor in a separate map
-    let v1 : _Employee2V1 = { id; name; department; phone; dailyRate; faceImageKey; createdAt };
-    employeeStore.add(id, v1);
-    descriptorStore.add(id, faceDescriptor);
-    { id; name; department; phone; dailyRate; faceImageKey; faceDescriptor; createdAt };
+  public shared func registerEmployee(id : Text, name : Text, department : Text, phone : Text, monthlySalary : Nat, joinDate : Text, isActive : Bool) : async Employee {
+    let emp : Employee = { id; name; department; phone; monthlySalary; joinDate; isActive };
+    employeeStore.add(id, employeeToV1(emp));
+    emp;
   };
 
-  public shared func updateEmployeeFace(employeeId : Text, faceImageKey : Text, faceDescriptor : Text) : async Bool {
-    switch (employeeStore.get(employeeId)) {
+  public shared func updateEmployee(id : Text, name : Text, department : Text, phone : Text, monthlySalary : Nat) : async Bool {
+    switch (employeeStore.get(id)) {
       case null { false };
-      case (?emp) {
-        let updated : _Employee2V1 = {
-          id = emp.id;
-          name = emp.name;
-          department = emp.department;
-          phone = emp.phone;
-          dailyRate = emp.dailyRate;
-          faceImageKey = faceImageKey;
-          createdAt = emp.createdAt;
-        };
-        employeeStore.add(employeeId, updated);
-        descriptorStore.add(employeeId, faceDescriptor);
-        true;
-      };
-    };
-  };
-
-  public query func getEmployees() : async [Employee2] {
-    employeeStore.values().toArray().map(
-      func(e : _Employee2V1) : Employee2 {
-        let desc = switch (descriptorStore.get(e.id)) { case null { "" }; case (?d) { d } };
-        { id = e.id; name = e.name; department = e.department; phone = e.phone; dailyRate = e.dailyRate; faceImageKey = e.faceImageKey; faceDescriptor = desc; createdAt = e.createdAt };
-      }
-    );
-  };
-
-  public query func getEmployee(employeeId : Text) : async ?Employee2 {
-    switch (employeeStore.get(employeeId)) {
-      case null { null };
       case (?e) {
-        let desc = switch (descriptorStore.get(e.id)) { case null { "" }; case (?d) { d } };
-        ?{ id = e.id; name = e.name; department = e.department; phone = e.phone; dailyRate = e.dailyRate; faceImageKey = e.faceImageKey; faceDescriptor = desc; createdAt = e.createdAt };
-      };
-    };
-  };
-
-  public shared func deleteEmployee(employeeId : Text) : async Bool {
-    switch (employeeStore.get(employeeId)) {
-      case null { false };
-      case (?_) {
-        employeeStore.remove(employeeId);
-        descriptorStore.remove(employeeId);
+        let updated : _Employee2V1 = {
+          id = e.id;
+          name;
+          department;
+          phone;
+          dailyRate = monthlySalary;
+          faceImageKey = e.faceImageKey;
+          createdAt = e.createdAt;
+        };
+        employeeStore.add(id, updated);
         true;
       };
     };
   };
 
-  // Separate stable map for face descriptors (avoids breaking Employee2 stable type)
-  let descriptorStore = Map.empty<Text, Text>();
+  public shared func deleteEmployee(id : Text) : async Bool {
+    switch (employeeStore.get(id)) {
+      case null { false };
+      case (?_) { employeeStore.remove(id); true };
+    };
+  };
+
+  public query func getEmployees() : async [Employee] {
+    employeeStore.values().toArray().map(v1ToEmployee);
+  };
+
+  public query func getEmployee(id : Text) : async ?Employee {
+    switch (employeeStore.get(id)) {
+      case null { null };
+      case (?e) { ?v1ToEmployee(e) };
+    };
+  };
 
   // ----------------------------------------------------------------
   // Attendance APIs
   // ----------------------------------------------------------------
 
-  public shared func markAttendance2(id : Text, employeeId : Text, date : Text, status : Text, markedAt : Int) : async AttendanceRecord2 {
-    let record : AttendanceRecord2 = { id; employeeId; date; status; markedAt };
+  public shared func markAttendance(id : Text, employeeId : Text, date : Text, status : Text, markedAt : Int) : async AttendanceRecord {
+    let record : AttendanceRecord = { id; employeeId; date; status; markedAt };
     let key = employeeId # "_" # date;
     attendanceStore.add(key, record);
     record;
   };
 
-  public query func getAttendanceByEmployee(employeeId : Text) : async [AttendanceRecord2] {
+  public query func getAttendanceByEmployee(employeeId : Text) : async [AttendanceRecord] {
     attendanceStore.values().toArray().filter(
-      func(r : AttendanceRecord2) : Bool { r.employeeId == employeeId }
+      func(r : AttendanceRecord) : Bool { r.employeeId == employeeId }
     );
   };
 
-  public query func getAttendanceByMonth(year : Text, month : Text) : async [AttendanceRecord2] {
+  public query func getAttendanceByMonth(year : Text, month : Text) : async [AttendanceRecord] {
     let prefix = year # "-" # month;
     attendanceStore.values().toArray().filter(
-      func(r : AttendanceRecord2) : Bool {
-        r.date.startsWith(#text prefix)
-      }
+      func(r : AttendanceRecord) : Bool { r.date.startsWith(#text prefix) }
     );
   };
 
@@ -203,7 +185,7 @@ actor {
   // Holiday APIs
   // ----------------------------------------------------------------
 
-  public shared func addHoliday2(id : Text, date : Text, reason : Text, createdAt : Int) : async Holiday2 {
+  public shared func addHoliday(id : Text, date : Text, reason : Text, createdAt : Int) : async Holiday2 {
     let h : Holiday2 = { id; date; reason; createdAt };
     holidayStore.add(id, h);
     h;
@@ -213,10 +195,10 @@ actor {
     holidayStore.values().toArray();
   };
 
-  public shared func removeHoliday(holidayId : Text) : async Bool {
-    switch (holidayStore.get(holidayId)) {
+  public shared func removeHoliday(id : Text) : async Bool {
+    switch (holidayStore.get(id)) {
       case null { false };
-      case (?_) { holidayStore.remove(holidayId); true };
+      case (?_) { holidayStore.remove(id); true };
     };
   };
 
@@ -225,9 +207,9 @@ actor {
   // ----------------------------------------------------------------
 
   public shared func recordPayment(id : Text, employeeId : Text, amount : Nat, note : Text, paidAt : Int) : async SalaryPayment {
-    let payment : SalaryPayment = { id; employeeId; amount; note; paidAt };
-    paymentStore.add(id, payment);
-    payment;
+    let p : SalaryPayment = { id; employeeId; amount; note; paidAt };
+    paymentStore.add(id, p);
+    p;
   };
 
   public query func getPaymentsByEmployee(employeeId : Text) : async [SalaryPayment] {

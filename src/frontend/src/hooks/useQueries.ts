@@ -1,21 +1,29 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
-  AttendanceRecord2,
-  Employee2,
-  Holiday2,
+  AttendanceRecord,
+  Employee,
+  Holiday,
   SalaryPayment,
 } from "../backend.d";
 import { useActor } from "./useActor";
 
 type AnyActor = any;
 
+// Safely unwrap a Motoko optional: [] | [T] or already T | null
+function unwrapOpt<T>(result: unknown): T | null {
+  if (result === null || result === undefined) return null;
+  if (Array.isArray(result)) return result.length > 0 ? (result[0] as T) : null;
+  return result as T;
+}
+
 export function useEmployees() {
   const { actor, isFetching } = useActor();
-  return useQuery<Employee2[]>({
+  return useQuery<Employee[]>({
     queryKey: ["employees"],
     queryFn: async () => {
       if (!actor) return [];
-      return (actor as AnyActor).getEmployees();
+      const result = await (actor as AnyActor).getEmployees();
+      return Array.isArray(result) ? result : [];
     },
     enabled: !!actor && !isFetching,
   });
@@ -23,12 +31,12 @@ export function useEmployees() {
 
 export function useEmployee(employeeId: string) {
   const { actor, isFetching } = useActor();
-  return useQuery<Employee2 | null>({
+  return useQuery<Employee | null>({
     queryKey: ["employee", employeeId],
     queryFn: async () => {
       if (!actor || !employeeId) return null;
       const result = await (actor as AnyActor).getEmployee(employeeId);
-      return result ?? null;
+      return unwrapOpt<Employee>(result);
     },
     enabled: !!actor && !isFetching && !!employeeId,
   });
@@ -36,11 +44,14 @@ export function useEmployee(employeeId: string) {
 
 export function useAttendanceByEmployee(employeeId: string) {
   const { actor, isFetching } = useActor();
-  return useQuery<AttendanceRecord2[]>({
-    queryKey: ["attendance", "employee", employeeId],
+  return useQuery<AttendanceRecord[]>({
+    queryKey: ["attendance", employeeId],
     queryFn: async () => {
       if (!actor || !employeeId) return [];
-      return (actor as AnyActor).getAttendanceByEmployee(employeeId);
+      const result = await (actor as AnyActor).getAttendanceByEmployee(
+        employeeId,
+      );
+      return Array.isArray(result) ? result : [];
     },
     enabled: !!actor && !isFetching && !!employeeId,
   });
@@ -48,11 +59,15 @@ export function useAttendanceByEmployee(employeeId: string) {
 
 export function useAttendanceByMonth(year: string, month: string) {
   const { actor, isFetching } = useActor();
-  return useQuery<AttendanceRecord2[]>({
-    queryKey: ["attendance", "month", year, month],
+  return useQuery<AttendanceRecord[]>({
+    queryKey: ["attendance-month", year, month],
     queryFn: async () => {
       if (!actor) return [];
-      return (actor as AnyActor).getAttendanceByMonth(year, month);
+      const result = await (actor as AnyActor).getAttendanceByMonth(
+        year,
+        month,
+      );
+      return Array.isArray(result) ? result : [];
     },
     enabled: !!actor && !isFetching,
   });
@@ -60,11 +75,12 @@ export function useAttendanceByMonth(year: string, month: string) {
 
 export function useHolidays() {
   const { actor, isFetching } = useActor();
-  return useQuery<Holiday2[]>({
+  return useQuery<Holiday[]>({
     queryKey: ["holidays"],
     queryFn: async () => {
       if (!actor) return [];
-      return (actor as AnyActor).getHolidays();
+      const result = await (actor as AnyActor).getHolidays();
+      return Array.isArray(result) ? result : [];
     },
     enabled: !!actor && !isFetching,
   });
@@ -76,7 +92,10 @@ export function usePaymentsByEmployee(employeeId: string) {
     queryKey: ["payments", employeeId],
     queryFn: async () => {
       if (!actor || !employeeId) return [];
-      return (actor as AnyActor).getPaymentsByEmployee(employeeId);
+      const result = await (actor as AnyActor).getPaymentsByEmployee(
+        employeeId,
+      );
+      return Array.isArray(result) ? result : [];
     },
     enabled: !!actor && !isFetching && !!employeeId,
   });
@@ -85,10 +104,11 @@ export function usePaymentsByEmployee(employeeId: string) {
 export function useAllPayments() {
   const { actor, isFetching } = useActor();
   return useQuery<SalaryPayment[]>({
-    queryKey: ["payments", "all"],
+    queryKey: ["payments-all"],
     queryFn: async () => {
       if (!actor) return [];
-      return (actor as AnyActor).getAllPayments();
+      const result = await (actor as AnyActor).getAllPayments();
+      return Array.isArray(result) ? result : [];
     },
     enabled: !!actor && !isFetching,
   });
@@ -103,9 +123,8 @@ export function useRegisterEmployee() {
       name: string;
       department: string;
       phone: string;
-      dailyRate: number;
-      faceImageKey: string;
-      faceDescriptor?: string;
+      monthlySalary: number;
+      joinDate: string;
     }) => {
       if (!actor) throw new Error("No actor");
       return (actor as AnyActor).registerEmployee(
@@ -113,10 +132,33 @@ export function useRegisterEmployee() {
         emp.name,
         emp.department,
         emp.phone,
-        BigInt(emp.dailyRate),
-        emp.faceImageKey,
-        emp.faceDescriptor ?? "",
-        BigInt(Date.now()),
+        BigInt(Math.round(emp.monthlySalary)),
+        emp.joinDate,
+        true,
+      );
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["employees"] }),
+  });
+}
+
+export function useUpdateEmployee() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (emp: {
+      id: string;
+      name: string;
+      department: string;
+      phone: string;
+      monthlySalary: number;
+    }) => {
+      if (!actor) throw new Error("No actor");
+      return (actor as AnyActor).updateEmployee(
+        emp.id,
+        emp.name,
+        emp.department,
+        emp.phone,
+        BigInt(Math.round(emp.monthlySalary)),
       );
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["employees"] }),
@@ -146,7 +188,7 @@ export function useMarkAttendance() {
     }) => {
       if (!actor) throw new Error("No actor");
       const id = crypto.randomUUID();
-      return (actor as AnyActor).markAttendance2(
+      return (actor as AnyActor).markAttendance(
         id,
         rec.employeeId,
         rec.date,
@@ -154,8 +196,10 @@ export function useMarkAttendance() {
         BigInt(Date.now()),
       );
     },
-    onSuccess: () => {
+    onSuccess: (_data: any, vars: any) => {
+      const [year, month] = vars.date.split("-");
       qc.invalidateQueries({ queryKey: ["attendance"] });
+      qc.invalidateQueries({ queryKey: ["attendance-month", year, month] });
     },
   });
 }
@@ -167,7 +211,7 @@ export function useAddHoliday() {
     mutationFn: async ({ date, reason }: { date: string; reason: string }) => {
       if (!actor) throw new Error("No actor");
       const id = crypto.randomUUID();
-      return (actor as AnyActor).addHoliday2(
+      return (actor as AnyActor).addHoliday(
         id,
         date,
         reason,
@@ -204,13 +248,14 @@ export function useRecordPayment() {
       return (actor as AnyActor).recordPayment(
         id,
         employeeId,
-        BigInt(amount),
+        BigInt(Math.round(amount)),
         note,
         BigInt(Date.now()),
       );
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["payments-all"] });
     },
   });
 }

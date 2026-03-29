@@ -2,7 +2,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { CalendarOff, Loader2, Plus, Trash2 } from "lucide-react";
+import { Skeleton } from "@/components/ui/skeleton";
+import { CalendarX2, Loader2, Plus, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import {
@@ -12,12 +13,11 @@ import {
 } from "../../hooks/useQueries";
 
 export default function HolidayManager() {
-  const [date, setDate] = useState("");
-  const [reason, setReason] = useState("");
-
   const { data: holidays = [], isLoading } = useHolidays();
   const addMut = useAddHoliday();
   const removeMut = useRemoveHoliday();
+  const [date, setDate] = useState("");
+  const [reason, setReason] = useState("");
 
   const handleAdd = async () => {
     if (!date || !reason.trim()) {
@@ -25,122 +25,144 @@ export default function HolidayManager() {
       return;
     }
     try {
-      await addMut.mutateAsync({ date, reason });
+      await addMut.mutateAsync({ date, reason: reason.trim() });
       toast.success("Holiday added");
       setDate("");
       setReason("");
-    } catch {
-      toast.error("Failed to add holiday");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to add holiday");
     }
   };
 
   const handleRemove = async (id: string) => {
-    if (!confirm("Remove this holiday?")) return;
     try {
       await removeMut.mutateAsync(id);
       toast.success("Holiday removed");
-    } catch {
-      toast.error("Failed to remove holiday");
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to remove");
     }
   };
 
+  const sorted = [...holidays].sort((a, b) => a.date.localeCompare(b.date));
+
   return (
-    <div className="space-y-5">
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2 text-base">
-            <CalendarOff className="w-4 h-4 text-primary" /> Add Holiday
-          </CardTitle>
+    <div className="p-6 space-y-6">
+      <div>
+        <h1 className="font-display font-bold text-2xl">Holiday Management</h1>
+        <p className="text-muted-foreground text-sm mt-1">
+          Add and manage company holidays
+        </p>
+      </div>
+
+      <Card className="rounded-xl">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base">Add Holiday</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div className="space-y-1">
-              <Label>Date *</Label>
+        <CardContent>
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="space-y-1.5 flex-1">
+              <Label>Date</Label>
               <Input
-                data-ocid="holiday.date_input"
+                data-ocid="holidays.date.input"
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
               />
             </div>
-            <div className="space-y-1">
-              <Label>Reason *</Label>
+            <div className="space-y-1.5 flex-1">
+              <Label>Reason</Label>
               <Input
-                data-ocid="holiday.reason_input"
-                placeholder="Holiday reason"
+                data-ocid="holidays.reason.input"
+                placeholder="e.g. Diwali, Republic Day"
                 value={reason}
                 onChange={(e) => setReason(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleAdd()}
               />
             </div>
+            <div className="flex items-end">
+              <Button
+                data-ocid="holidays.add_button"
+                onClick={handleAdd}
+                disabled={addMut.isPending}
+                className="w-full sm:w-auto"
+              >
+                {addMut.isPending ? (
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                ) : (
+                  <Plus className="w-4 h-4 mr-1.5" />
+                )}{" "}
+                Add Holiday
+              </Button>
+            </div>
           </div>
-          <Button
-            data-ocid="holiday.add_button"
-            onClick={handleAdd}
-            disabled={addMut.isPending}
-            className="w-full"
-          >
-            {addMut.isPending ? (
-              <Loader2 className="w-4 h-4 animate-spin mr-2" />
-            ) : (
-              <Plus className="w-4 h-4 mr-2" />
-            )}
-            Add Holiday
-          </Button>
         </CardContent>
       </Card>
 
-      <Card>
-        <CardHeader>
+      <Card className="rounded-xl">
+        <CardHeader className="pb-3 flex flex-row items-center gap-2">
+          <CalendarX2 className="w-5 h-5 text-primary" />
           <CardTitle className="text-base">
-            Holiday List ({holidays.length})
+            Holidays ({holidays.length})
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="p-0">
           {isLoading ? (
-            <p className="text-sm text-muted-foreground text-center py-4">
-              Loading...
-            </p>
-          ) : holidays.length === 0 ? (
-            <p
-              className="text-sm text-muted-foreground text-center py-6"
-              data-ocid="holiday.empty_state"
+            <div className="p-6 space-y-3" data-ocid="holidays.loading_state">
+              <Skeleton className="h-14 rounded-lg" />
+              <Skeleton className="h-14 rounded-lg" />
+              <Skeleton className="h-14 rounded-lg" />
+            </div>
+          ) : sorted.length === 0 ? (
+            <div
+              className="text-center py-12 text-muted-foreground"
+              data-ocid="holidays.empty_state"
             >
-              No holidays added yet
-            </p>
+              <CalendarX2 className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <p className="text-sm">No holidays added yet</p>
+            </div>
           ) : (
-            <div className="space-y-2">
-              {holidays
-                .slice()
-                .sort((a, b) => a.date.localeCompare(b.date))
-                .map((h, i) => (
-                  <div
-                    key={h.id}
-                    data-ocid={`holiday.item.${i + 1}`}
-                    className="flex items-center justify-between p-3 bg-blue-50 border border-blue-100 rounded-lg"
-                  >
-                    <div>
-                      <p className="text-sm font-semibold text-blue-800">
-                        {h.reason}
-                      </p>
-                      <p className="text-xs text-blue-600">
-                        {new Date(h.date).toLocaleDateString("en-IN", {
-                          weekday: "short",
-                          day: "2-digit",
-                          month: "long",
-                          year: "numeric",
-                        })}
-                      </p>
+            <div className="divide-y">
+              {sorted.map((h, idx) => (
+                <div
+                  key={h.id}
+                  className="flex items-center justify-between px-5 py-3"
+                  data-ocid={`holidays.item.${idx + 1}`}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-9 h-9 rounded-lg bg-warning/10 flex items-center justify-center">
+                      <CalendarX2 className="w-4 h-4 text-warning-foreground" />
                     </div>
-                    <button
-                      type="button"
-                      onClick={() => handleRemove(h.id)}
-                      data-ocid={`holiday.delete_button.${i + 1}`}
-                      className="p-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                    <div>
+                      <div className="font-medium text-sm">{h.reason}</div>
+                      <div className="text-xs text-muted-foreground">
+                        {new Date(`${h.date}T00:00:00`).toLocaleDateString(
+                          "en-IN",
+                          {
+                            weekday: "long",
+                            year: "numeric",
+                            month: "long",
+                            day: "numeric",
+                          },
+                        )}
+                      </div>
+                    </div>
                   </div>
-                ))}
+                  <Button
+                    data-ocid={`holidays.delete_button.${idx + 1}`}
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                    onClick={() => handleRemove(h.id)}
+                    disabled={removeMut.isPending}
+                  >
+                    {removeMut.isPending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-3.5 h-3.5" />
+                    )}
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
         </CardContent>

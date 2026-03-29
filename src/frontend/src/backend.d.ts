@@ -1,24 +1,24 @@
-export interface Employee2 {
+export interface Employee {
   id: string;
   name: string;
   department: string;
   phone: string;
-  dailyRate: bigint;
-  faceImageKey: string;
-  createdAt: bigint;
+  monthlySalary: bigint;
+  joinDate: string;
+  isActive: boolean;
 }
 
-export interface AttendanceRecord2 {
+export interface AttendanceRecord {
   id: string;
   employeeId: string;
-  date: string;
-  status: string; // 'present' | 'absent' | 'holiday'
+  date: string; // YYYY-MM-DD
+  status: string; // 'present' | 'absent' | 'halfday'
   markedAt: bigint;
 }
 
-export interface Holiday2 {
+export interface Holiday {
   id: string;
-  date: string;
+  date: string; // YYYY-MM-DD
   reason: string;
   createdAt: bigint;
 }
@@ -39,33 +39,26 @@ export enum UserRole {
 
 export interface backendInterface {
   // Employee
-  registerEmployee(id: string, name: string, department: string, phone: string, dailyRate: bigint, faceImageKey: string, createdAt: bigint): Promise<Employee2>;
-  updateEmployeeFace(employeeId: string, faceImageKey: string): Promise<boolean>;
-  getEmployees(): Promise<Array<Employee2>>;
-  getEmployee(employeeId: string): Promise<Employee2 | null>;
-  deleteEmployee(employeeId: string): Promise<boolean>;
-
+  registerEmployee(id: string, name: string, department: string, phone: string, monthlySalary: bigint, joinDate: string, isActive: boolean): Promise<Employee>;
+  updateEmployee(id: string, name: string, department: string, phone: string, monthlySalary: bigint): Promise<boolean>;
+  deleteEmployee(id: string): Promise<boolean>;
+  getEmployees(): Promise<Array<Employee>>;
+  getEmployee(id: string): Promise<Employee | null>;
   // Attendance
-  markAttendance2(id: string, employeeId: string, date: string, status: string, markedAt: bigint): Promise<AttendanceRecord2>;
-  getAttendanceByEmployee(employeeId: string): Promise<Array<AttendanceRecord2>>;
-  getAttendanceByMonth(year: string, month: string): Promise<Array<AttendanceRecord2>>;
-
+  markAttendance(id: string, employeeId: string, date: string, status: string, markedAt: bigint): Promise<AttendanceRecord>;
+  getAttendanceByEmployee(employeeId: string): Promise<Array<AttendanceRecord>>;
+  getAttendanceByMonth(year: string, month: string): Promise<Array<AttendanceRecord>>;
   // Holidays
-  addHoliday2(id: string, date: string, reason: string, createdAt: bigint): Promise<Holiday2>;
-  getHolidays(): Promise<Array<Holiday2>>;
-  removeHoliday(holidayId: string): Promise<boolean>;
-
+  addHoliday(id: string, date: string, reason: string, createdAt: bigint): Promise<Holiday>;
+  getHolidays(): Promise<Array<Holiday>>;
+  removeHoliday(id: string): Promise<boolean>;
   // Payments
   recordPayment(id: string, employeeId: string, amount: bigint, note: string, paidAt: bigint): Promise<SalaryPayment>;
   getPaymentsByEmployee(employeeId: string): Promise<Array<SalaryPayment>>;
   getAllPayments(): Promise<Array<SalaryPayment>>;
-
   // Auth
   assignCallerUserRole(user: import('@icp-sdk/core/principal').Principal, role: UserRole): Promise<void>;
   getCallerUserRole(): Promise<UserRole>;
   isCallerAdmin(): Promise<boolean>;
-
-  // Blob storage
-  uploadBlob(key: string, data: Uint8Array, contentType: string): Promise<string>;
-  getBlobUrl(key: string): Promise<string | null>;
+  _initializeAccessControlWithSecret(secret: string): Promise<void>;
 }

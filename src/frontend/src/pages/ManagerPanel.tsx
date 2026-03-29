@@ -1,191 +1,168 @@
+import { Button } from "@/components/ui/button";
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
 import {
-  ArrowLeft,
   BarChart3,
-  CalendarOff,
-  IndianRupee,
+  CalendarCheck,
+  CalendarX2,
+  CheckCircle2,
+  ChevronLeft,
+  DollarSign,
+  LayoutDashboard,
   Menu,
-  ScanFace,
-  UserPlus,
-  X,
+  Users,
 } from "lucide-react";
-import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
+import Dashboard from "./manager/Dashboard";
+import EmployeeList from "./manager/EmployeeList";
 import HolidayManager from "./manager/HolidayManager";
 import MarkAttendance from "./manager/MarkAttendance";
-import MonthlyAttendance from "./manager/MonthlyAttendance";
-import MonthlySalary from "./manager/MonthlySalary";
-import RegisterEmployee from "./manager/RegisterEmployee";
+import MonthlyReport from "./manager/MonthlyReport";
+import SalaryReport from "./manager/SalaryReport";
 
-type Tab = "register" | "attendance" | "holiday" | "monthly" | "salary";
+export type ManagerTab =
+  | "dashboard"
+  | "employees"
+  | "attendance"
+  | "monthly"
+  | "salary"
+  | "holidays";
 
-const TABS: {
-  id: Tab;
-  label: string;
-  icon: React.ReactNode;
-  shortLabel: string;
-}[] = [
+const NAV_ITEMS: { id: ManagerTab; label: string; icon: React.ReactNode }[] = [
   {
-    id: "register",
-    label: "Register Employee",
-    shortLabel: "Register",
-    icon: <UserPlus className="w-4 h-4" />,
+    id: "dashboard",
+    label: "Dashboard",
+    icon: <LayoutDashboard className="w-5 h-5" />,
   },
+  { id: "employees", label: "Employees", icon: <Users className="w-5 h-5" /> },
   {
     id: "attendance",
     label: "Mark Attendance",
-    shortLabel: "Attendance",
-    icon: <ScanFace className="w-4 h-4" />,
-  },
-  {
-    id: "holiday",
-    label: "Holiday",
-    shortLabel: "Holiday",
-    icon: <CalendarOff className="w-4 h-4" />,
+    icon: <CalendarCheck className="w-5 h-5" />,
   },
   {
     id: "monthly",
-    label: "Monthly Attendance",
-    shortLabel: "Monthly",
-    icon: <BarChart3 className="w-4 h-4" />,
+    label: "Monthly Report",
+    icon: <BarChart3 className="w-5 h-5" />,
   },
+  { id: "salary", label: "Salary", icon: <DollarSign className="w-5 h-5" /> },
   {
-    id: "salary",
-    label: "Monthly Salary",
-    shortLabel: "Salary",
-    icon: <IndianRupee className="w-4 h-4" />,
+    id: "holidays",
+    label: "Holidays",
+    icon: <CalendarX2 className="w-5 h-5" />,
   },
 ];
 
-interface Props {
+function SidebarContent({
+  active,
+  onSelect,
+  onBack,
+}: {
+  active: ManagerTab;
+  onSelect: (t: ManagerTab) => void;
   onBack: () => void;
+}) {
+  return (
+    <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
+      <div className="px-5 py-5 border-b border-sidebar-border">
+        <div className="flex items-center gap-2 mb-1">
+          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+            <CheckCircle2 className="w-5 h-5 text-primary-foreground" />
+          </div>
+          <span className="font-display font-bold text-lg">AttendPro</span>
+        </div>
+        <p className="text-xs text-[oklch(0.55_0.04_240)] ml-10">
+          Manager Portal
+        </p>
+      </div>
+      <nav className="flex-1 p-3 space-y-1">
+        {NAV_ITEMS.map((item) => (
+          <button
+            key={item.id}
+            type="button"
+            data-ocid={`manager.nav.${item.id}`}
+            onClick={() => onSelect(item.id)}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+              active === item.id
+                ? "bg-primary text-primary-foreground"
+                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+            }`}
+          >
+            {item.icon}
+            {item.label}
+          </button>
+        ))}
+      </nav>
+      <div className="p-3 border-t border-sidebar-border">
+        <button
+          type="button"
+          data-ocid="manager.back_button"
+          onClick={onBack}
+          className="w-full flex items-center gap-2 px-3 py-2 rounded-lg text-sm text-[oklch(0.55_0.04_240)] hover:text-sidebar-foreground hover:bg-sidebar-accent transition-colors"
+        >
+          <ChevronLeft className="w-4 h-4" /> Back to Home
+        </button>
+      </div>
+    </div>
+  );
 }
 
-export default function ManagerPanel({ onBack }: Props) {
-  const [activeTab, setActiveTab] = useState<Tab>("register");
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+export default function ManagerPanel({ onBack }: { onBack: () => void }) {
+  const [activeTab, setActiveTab] = useState<ManagerTab>("dashboard");
+  const [mobileOpen, setMobileOpen] = useState(false);
 
-  const current = TABS.find((t) => t.id === activeTab)!;
+  const handleSelect = (tab: ManagerTab) => {
+    setActiveTab(tab);
+    setMobileOpen(false);
+  };
+
+  const activeLabel = NAV_ITEMS.find((n) => n.id === activeTab)?.label ?? "";
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <header className="bg-sidebar text-sidebar-foreground px-4 py-3 flex items-center gap-3 sticky top-0 z-30">
-        <button
-          type="button"
-          onClick={onBack}
-          className="p-2 rounded-lg hover:bg-sidebar-accent transition-colors"
-        >
-          <ArrowLeft className="w-5 h-5" />
-        </button>
-        <h1 className="font-display font-bold text-base flex-1">
-          Manager Panel
-        </h1>
-        <button
-          type="button"
-          className="lg:hidden p-2 rounded-lg hover:bg-sidebar-accent transition-colors"
-          onClick={() => setSidebarOpen((v) => !v)}
-        >
-          {sidebarOpen ? (
-            <X className="w-5 h-5" />
-          ) : (
-            <Menu className="w-5 h-5" />
-          )}
-        </button>
-      </header>
+    <div className="flex h-screen bg-background overflow-hidden">
+      <aside className="hidden lg:flex w-60 flex-shrink-0 flex-col border-r border-border">
+        <SidebarContent
+          active={activeTab}
+          onSelect={setActiveTab}
+          onBack={onBack}
+        />
+      </aside>
 
-      <div className="flex flex-1 relative">
-        <aside className="hidden lg:flex flex-col w-56 bg-sidebar text-sidebar-foreground min-h-full pt-4 shrink-0">
-          {TABS.map((tab) => (
-            <button
-              key={tab.id}
-              type="button"
-              data-ocid="manager.nav_tab"
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all mx-2 rounded-lg mb-1 ${
-                activeTab === tab.id
-                  ? "bg-primary text-primary-foreground"
-                  : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-            </button>
-          ))}
-        </aside>
-
-        <AnimatePresence>
-          {sidebarOpen && (
-            <>
-              <motion.div
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.5 }}
-                exit={{ opacity: 0 }}
-                className="lg:hidden fixed inset-0 bg-black z-20"
-                onClick={() => setSidebarOpen(false)}
-              />
-              <motion.aside
-                initial={{ x: -280 }}
-                animate={{ x: 0 }}
-                exit={{ x: -280 }}
-                transition={{ type: "spring", damping: 25, stiffness: 250 }}
-                className="lg:hidden fixed top-0 left-0 h-full w-64 bg-sidebar text-sidebar-foreground z-30 pt-16 flex flex-col"
+      <div className="flex flex-col flex-1 min-w-0">
+        <header className="lg:hidden flex items-center gap-3 px-4 py-3 border-b border-border bg-card">
+          <Sheet open={mobileOpen} onOpenChange={setMobileOpen}>
+            <SheetTrigger asChild>
+              <Button
+                variant="ghost"
+                size="icon"
+                data-ocid="manager.menu_button"
               >
-                {TABS.map((tab) => (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    data-ocid="manager.nav_tab"
-                    onClick={() => {
-                      setActiveTab(tab.id);
-                      setSidebarOpen(false);
-                    }}
-                    className={`flex items-center gap-3 px-4 py-3 text-sm font-medium transition-all mx-2 rounded-lg mb-1 ${
-                      activeTab === tab.id
-                        ? "bg-primary text-primary-foreground"
-                        : "text-sidebar-foreground/70 hover:bg-sidebar-accent hover:text-sidebar-foreground"
-                    }`}
-                  >
-                    {tab.icon}
-                    {tab.label}
-                  </button>
-                ))}
-              </motion.aside>
-            </>
-          )}
-        </AnimatePresence>
+                <Menu className="w-5 h-5" />
+              </Button>
+            </SheetTrigger>
+            <SheetContent side="left" className="p-0 w-60">
+              <SidebarContent
+                active={activeTab}
+                onSelect={handleSelect}
+                onBack={onBack}
+              />
+            </SheetContent>
+          </Sheet>
+          <div className="flex items-center gap-2">
+            <CheckCircle2 className="w-5 h-5 text-primary" />
+            <span className="font-display font-bold text-base">AttendPro</span>
+          </div>
+          <span className="ml-auto text-sm text-muted-foreground">
+            {activeLabel}
+          </span>
+        </header>
 
         <main className="flex-1 overflow-auto">
-          <div className="p-4 max-w-4xl mx-auto">
-            <div className="mb-4 flex items-center gap-2">
-              {current.icon}
-              <h2 className="font-display font-bold text-xl">
-                {current.label}
-              </h2>
-            </div>
-            <div className="lg:hidden flex gap-1 overflow-x-auto pb-2 mb-4">
-              {TABS.map((tab) => (
-                <button
-                  key={tab.id}
-                  type="button"
-                  data-ocid="manager.nav_tab"
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium whitespace-nowrap shrink-0 transition-all ${
-                    activeTab === tab.id
-                      ? "bg-primary text-primary-foreground"
-                      : "bg-muted text-muted-foreground hover:bg-accent"
-                  }`}
-                >
-                  {tab.icon}
-                  {tab.shortLabel}
-                </button>
-              ))}
-            </div>
-
-            {activeTab === "register" && <RegisterEmployee />}
-            {activeTab === "attendance" && <MarkAttendance />}
-            {activeTab === "holiday" && <HolidayManager />}
-            {activeTab === "monthly" && <MonthlyAttendance />}
-            {activeTab === "salary" && <MonthlySalary />}
-          </div>
+          {activeTab === "dashboard" && <Dashboard onNavigate={setActiveTab} />}
+          {activeTab === "employees" && <EmployeeList />}
+          {activeTab === "attendance" && <MarkAttendance />}
+          {activeTab === "monthly" && <MonthlyReport />}
+          {activeTab === "salary" && <SalaryReport />}
+          {activeTab === "holidays" && <HolidayManager />}
         </main>
       </div>
     </div>
