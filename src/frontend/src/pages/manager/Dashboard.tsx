@@ -1,7 +1,25 @@
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
-import { CalendarX2, TrendingUp, UserCheck, UserX, Users } from "lucide-react";
-import { useMemo } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  CalendarX2,
+  Trash2,
+  TrendingUp,
+  UserCheck,
+  UserX,
+  Users,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { useActor } from "../../hooks/useActor";
 import {
   useAttendanceByMonth,
   useEmployees,
@@ -41,6 +59,11 @@ export default function Dashboard({
     month,
   );
   const { data: holidays = [] } = useHolidays();
+  const { actor } = useActor();
+  const queryClient = useQueryClient();
+
+  const [showConfirm, setShowConfirm] = useState(false);
+  const [clearing, setClearing] = useState(false);
 
   const todayAttendance = useMemo(
     () => attendance.filter((a) => a.date === today),
@@ -69,6 +92,19 @@ export default function Dashboard({
         .slice(0, 10),
     [attendance],
   );
+
+  const handleClearAll = async () => {
+    if (!actor) return;
+    setClearing(true);
+    try {
+      await actor.clearAllData();
+      await queryClient.invalidateQueries();
+      await queryClient.refetchQueries();
+    } finally {
+      setClearing(false);
+      setShowConfirm(false);
+    }
+  };
 
   const statCards = [
     {
@@ -107,16 +143,27 @@ export default function Dashboard({
 
   return (
     <div className="p-6 space-y-6">
-      <div>
-        <h1 className="font-display font-bold text-2xl">Dashboard</h1>
-        <p className="text-muted-foreground text-sm mt-1">
-          {now.toLocaleDateString("en-IN", {
-            weekday: "long",
-            year: "numeric",
-            month: "long",
-            day: "numeric",
-          })}
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="font-display font-bold text-2xl">Dashboard</h1>
+          <p className="text-muted-foreground text-sm mt-1">
+            {now.toLocaleDateString("en-IN", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+            })}
+          </p>
+        </div>
+        <Button
+          variant="destructive"
+          size="sm"
+          className="flex items-center gap-2"
+          onClick={() => setShowConfirm(true)}
+        >
+          <Trash2 className="w-4 h-4" />
+          Clear All Data
+        </Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -211,6 +258,34 @@ export default function Dashboard({
           )}
         </CardContent>
       </Card>
+
+      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Clear All Data</DialogTitle>
+            <DialogDescription>
+              This will permanently delete all employees, attendance records,
+              holidays, and salary payments. This action cannot be undone.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowConfirm(false)}
+              disabled={clearing}
+            >
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleClearAll}
+              disabled={clearing}
+            >
+              {clearing ? "Clearing..." : "Yes, Clear All"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

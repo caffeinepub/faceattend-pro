@@ -46,7 +46,6 @@ const EMPTY_FORM = {
   id: "",
   name: "",
   department: "",
-  phone: "",
   monthlySalary: "",
 };
 
@@ -81,7 +80,6 @@ export default function EmployeeList() {
       id: emp.id,
       name: emp.name,
       department: emp.department,
-      phone: emp.phone,
       monthlySalary: String(Number(emp.monthlySalary)),
     });
     setDialogOpen(true);
@@ -103,16 +101,16 @@ export default function EmployeeList() {
           id: form.id,
           name: form.name,
           department: form.department,
-          phone: form.phone,
+          phone: "",
           monthlySalary: salary,
         });
-        toast.success("Employee updated");
+        toast.success("Salary updated");
       } else {
         await registerMut.mutateAsync({
           id: form.id,
           name: form.name,
           department: form.department,
-          phone: form.phone,
+          phone: "",
           monthlySalary: salary,
           joinDate: new Date().toISOString().slice(0, 10),
         });
@@ -193,9 +191,6 @@ export default function EmployeeList() {
                     <th className="text-left px-4 py-3 font-semibold text-muted-foreground hidden md:table-cell">
                       Dept
                     </th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground hidden lg:table-cell">
-                      Phone
-                    </th>
                     <th className="text-right px-4 py-3 font-semibold text-muted-foreground">
                       Monthly
                     </th>
@@ -227,9 +222,6 @@ export default function EmployeeList() {
                       </td>
                       <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
                         {emp.department}
-                      </td>
-                      <td className="px-4 py-3 text-muted-foreground hidden lg:table-cell">
-                        {emp.phone || "-"}
                       </td>
                       <td className="px-4 py-3 text-right font-medium">
                         {fmtCurrency(Number(emp.monthlySalary))}
@@ -274,65 +266,76 @@ export default function EmployeeList() {
         <DialogContent className="sm:max-w-md" data-ocid="employees.dialog">
           <DialogHeader>
             <DialogTitle>
-              {editingEmp ? "Edit Employee" : "Add New Employee"}
+              {editingEmp ? "Edit Salary" : "Add New Employee"}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Employee ID *</Label>
-                <Input
-                  data-ocid="employees.id.input"
-                  placeholder="Employee ID"
-                  value={form.id}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, id: e.target.value }))
-                  }
-                  disabled={!!editingEmp}
-                />
+            {!editingEmp && (
+              <>
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-1.5">
+                    <Label>Employee ID *</Label>
+                    <Input
+                      data-ocid="employees.id.input"
+                      placeholder="Employee ID"
+                      value={form.id}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, id: e.target.value }))
+                      }
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label>Full Name *</Label>
+                    <Input
+                      data-ocid="employees.name.input"
+                      placeholder="Full name"
+                      value={form.name}
+                      onChange={(e) =>
+                        setForm((f) => ({ ...f, name: e.target.value }))
+                      }
+                    />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Department *</Label>
+                  <Select
+                    value={form.department}
+                    onValueChange={(val) =>
+                      setForm((f) => ({ ...f, department: val }))
+                    }
+                  >
+                    <SelectTrigger data-ocid="employees.department.input">
+                      <SelectValue placeholder="Select department" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Driver">Driver</SelectItem>
+                      <SelectItem value="Office">Office</SelectItem>
+                      <SelectItem value="Manager">Manager</SelectItem>
+                      <SelectItem value="Loader">Loader</SelectItem>
+                      <SelectItem value="Incharger">Incharger</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+
+            {editingEmp && (
+              <div className="space-y-1 rounded-lg bg-muted/40 px-4 py-3 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Name</span>
+                  <span className="font-medium">{editingEmp.name}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">ID</span>
+                  <span className="font-medium">{editingEmp.id}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Department</span>
+                  <span className="font-medium">{editingEmp.department}</span>
+                </div>
               </div>
-              <div className="space-y-1.5">
-                <Label>Full Name *</Label>
-                <Input
-                  data-ocid="employees.name.input"
-                  placeholder="Full name"
-                  value={form.name}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, name: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
-            <div className="grid grid-cols-2 gap-4">
-              <div className="space-y-1.5">
-                <Label>Department *</Label>
-                <Select
-                  value={form.department}
-                  onValueChange={(val) =>
-                    setForm((f) => ({ ...f, department: val }))
-                  }
-                >
-                  <SelectTrigger data-ocid="employees.department.input">
-                    <SelectValue placeholder="Select department" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Driver">Driver</SelectItem>
-                    <SelectItem value="Office">Office</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-1.5">
-                <Label>Phone</Label>
-                <Input
-                  data-ocid="employees.phone.input"
-                  placeholder="Phone number"
-                  value={form.phone}
-                  onChange={(e) =>
-                    setForm((f) => ({ ...f, phone: e.target.value }))
-                  }
-                />
-              </div>
-            </div>
+            )}
+
             <div className="space-y-1.5">
               <Label>Monthly Salary (₹) *</Label>
               <Input
@@ -370,7 +373,7 @@ export default function EmployeeList() {
               data-ocid="employees.dialog.submit_button"
             >
               {isSaving && <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />}
-              {editingEmp ? "Save Changes" : "Register Employee"}
+              {editingEmp ? "Update Salary" : "Register Employee"}
             </Button>
           </DialogFooter>
         </DialogContent>

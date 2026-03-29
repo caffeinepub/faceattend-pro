@@ -173,7 +173,13 @@ export function useDeleteEmployee() {
       if (!actor) throw new Error("No actor");
       return (actor as AnyActor).deleteEmployee(employeeId);
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["employees"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["employees"] });
+      qc.invalidateQueries({ queryKey: ["attendance"] });
+      qc.invalidateQueries({ queryKey: ["attendance-month"] });
+      qc.invalidateQueries({ queryKey: ["payments"] });
+      qc.invalidateQueries({ queryKey: ["payments-all"] });
+    },
   });
 }
 

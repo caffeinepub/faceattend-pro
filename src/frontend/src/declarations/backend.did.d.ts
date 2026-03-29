@@ -62,6 +62,7 @@ export interface _SERVICE {
   'recordPayment'          : ActorMethod<[string, string, bigint, string, bigint], SalaryPayment>;
   'getPaymentsByEmployee'  : ActorMethod<[string], Array<SalaryPayment>>;
   'getAllPayments'          : ActorMethod<[], Array<SalaryPayment>>;
+  'clearAllData'           : ActorMethod<[], boolean>;
   'assignCallerUserRole'   : ActorMethod<[Principal, UserRole], undefined>;
   'getCallerUserRole'      : ActorMethod<[], UserRole>;
   'isCallerAdmin'          : ActorMethod<[], boolean>;

@@ -23,7 +23,6 @@ actor {
   type _OldAttendanceRecord = { laborId : Text; date : Text; status : Text; multiplierX10 : Nat; checkIn : Text; checkOut : Text; notes : Text };
   type _OldAdvancePayment = { id : Text; laborId : Text; amount : Nat; date : Text; note : Text };
 
-  // These must be kept to avoid M0169 compatibility errors
   let userProfiles = Map.empty<Principal, _OldUserProfile>();
   let employees = Map.empty<Text, _OldEmployee>();
   let attendanceRecords = Map.empty<Text, _OldAttendance>();
@@ -36,20 +35,16 @@ actor {
   let descriptorStore = Map.empty<Text, Text>();
 
   // ----------------------------------------------------------------
-  // Employee storage — reuses _Employee2V1 shape for stable compat.
-  // We repurpose fields:
-  //   dailyRate   -> stores monthlySalary
-  //   faceImageKey -> stores joinDate
-  //   createdAt   -> stores isActive as 1 (true) or 0 (false)
+  // Employee storage
   // ----------------------------------------------------------------
   type _Employee2V1 = {
     id : Text;
     name : Text;
     department : Text;
     phone : Text;
-    dailyRate : Nat;      // repurposed: stores monthlySalary
-    faceImageKey : Text;  // repurposed: stores joinDate
-    createdAt : Int;      // repurposed: stores isActive (1=true, 0=false)
+    dailyRate : Nat;
+    faceImageKey : Text;
+    createdAt : Int;
   };
 
   public type Employee = {
@@ -142,7 +137,32 @@ actor {
   public shared func deleteEmployee(id : Text) : async Bool {
     switch (employeeStore.get(id)) {
       case null { false };
-      case (?_) { employeeStore.remove(id); true };
+      case (?_) {
+        employeeStore.remove(id);
+        let attKeys = attendanceStore.keys().toArray().filter(
+          func(k : Text) : Bool {
+            switch (attendanceStore.get(k)) {
+              case null { false };
+              case (?r) { r.employeeId == id };
+            };
+          }
+        );
+        for (k in attKeys.vals()) {
+          attendanceStore.remove(k);
+        };
+        let payKeys = paymentStore.keys().toArray().filter(
+          func(k : Text) : Bool {
+            switch (paymentStore.get(k)) {
+              case null { false };
+              case (?p) { p.employeeId == id };
+            };
+          }
+        );
+        for (k in payKeys.vals()) {
+          paymentStore.remove(k);
+        };
+        true;
+      };
     };
   };
 
@@ -220,5 +240,25 @@ actor {
 
   public query func getAllPayments() : async [SalaryPayment] {
     paymentStore.values().toArray();
+  };
+
+  // ----------------------------------------------------------------
+  // Reset / Clear All Data
+  // ----------------------------------------------------------------
+
+  public shared func clearAllData() : async Bool {
+    for (k in employeeStore.keys().toArray().vals()) {
+      employeeStore.remove(k);
+    };
+    for (k in attendanceStore.keys().toArray().vals()) {
+      attendanceStore.remove(k);
+    };
+    for (k in holidayStore.keys().toArray().vals()) {
+      holidayStore.remove(k);
+    };
+    for (k in paymentStore.keys().toArray().vals()) {
+      paymentStore.remove(k);
+    };
+    true;
   };
 };

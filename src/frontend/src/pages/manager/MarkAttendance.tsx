@@ -45,6 +45,8 @@ export default function MarkAttendance() {
   );
   const markMut = useMarkAttendance();
   const [marking, setMarking] = useState<Record<string, boolean>>({});
+  // Track which employees are in "edit mode" (showing change buttons)
+  const [editingIds, setEditingIds] = useState<Record<string, boolean>>({});
 
   const todayMap = useMemo(() => {
     const m: Record<string, string> = {};
@@ -59,6 +61,8 @@ export default function MarkAttendance() {
     try {
       await markMut.mutateAsync({ employeeId, date: today, status });
       toast.success(`Marked as ${status}`);
+      // Exit edit mode after marking
+      setEditingIds((prev) => ({ ...prev, [employeeId]: false }));
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to mark attendance");
     } finally {
@@ -132,6 +136,7 @@ export default function MarkAttendance() {
               {employees.map((emp, idx) => {
                 const status = todayMap[emp.id];
                 const isMarking = marking[emp.id];
+                const isEditing = editingIds[emp.id];
                 const statusConf = status
                   ? STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]
                   : null;
@@ -155,7 +160,8 @@ export default function MarkAttendance() {
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {isMarking ? (
                         <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
-                      ) : statusConf ? (
+                      ) : statusConf && !isEditing ? (
+                        // Already marked — show badge + Edit button
                         <div className="flex items-center gap-2">
                           <span
                             className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusConf.className}`}
@@ -166,14 +172,20 @@ export default function MarkAttendance() {
                             variant="ghost"
                             size="sm"
                             className="text-xs h-7 px-2 text-muted-foreground"
-                            onClick={() => handleMark(emp.id, "present")}
-                            data-ocid={`attendance.change_button.${idx + 1}`}
+                            onClick={() =>
+                              setEditingIds((prev) => ({
+                                ...prev,
+                                [emp.id]: true,
+                              }))
+                            }
+                            data-ocid={`attendance.edit_button.${idx + 1}`}
                           >
-                            Change
+                            Edit
                           </Button>
                         </div>
                       ) : (
-                        <div className="flex gap-1">
+                        // Not yet marked OR in edit mode — show all 3 action buttons
+                        <div className="flex gap-1 flex-wrap justify-end">
                           <Button
                             data-ocid={`attendance.present_button.${idx + 1}`}
                             size="sm"
@@ -202,6 +214,21 @@ export default function MarkAttendance() {
                           >
                             <MinusCircle className="w-3.5 h-3.5 mr-1" /> Half
                           </Button>
+                          {isEditing && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-8 text-xs text-muted-foreground"
+                              onClick={() =>
+                                setEditingIds((prev) => ({
+                                  ...prev,
+                                  [emp.id]: false,
+                                }))
+                              }
+                            >
+                              Cancel
+                            </Button>
+                          )}
                         </div>
                       )}
                     </div>

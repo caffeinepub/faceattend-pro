@@ -76,6 +76,8 @@ const serviceEntries = {
   'recordPayment'           : IDL.Func([IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Int], [SalaryPayment], []),
   'getPaymentsByEmployee'   : IDL.Func([IDL.Text], [IDL.Vec(SalaryPayment)], ['query']),
   'getAllPayments'           : IDL.Func([], [IDL.Vec(SalaryPayment)], ['query']),
+  // Reset
+  'clearAllData'    : IDL.Func([], [IDL.Bool], []),
   // Auth
   'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
   'getCallerUserRole'    : IDL.Func([], [UserRole], ['query']),
@@ -116,6 +118,7 @@ export const idlFactory = ({ IDL }) => {
     'recordPayment'           : IDL.Func([IDL.Text, IDL.Text, IDL.Nat, IDL.Text, IDL.Int], [SalaryPayment], []),
     'getPaymentsByEmployee'   : IDL.Func([IDL.Text], [IDL.Vec(SalaryPayment)], ['query']),
     'getAllPayments'           : IDL.Func([], [IDL.Vec(SalaryPayment)], ['query']),
+    'clearAllData'    : IDL.Func([], [IDL.Bool], []),
     'assignCallerUserRole' : IDL.Func([IDL.Principal, UserRole], [], []),
     'getCallerUserRole'    : IDL.Func([], [UserRole], ['query']),
     'isCallerAdmin'        : IDL.Func([], [IDL.Bool], ['query']),

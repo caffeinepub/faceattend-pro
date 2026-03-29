@@ -94,6 +94,7 @@ export interface backendInterface {
   recordPayment(id: string, employeeId: string, amount: bigint, note: string, paidAt: bigint): Promise<SalaryPayment>;
   getPaymentsByEmployee(employeeId: string): Promise<Array<SalaryPayment>>;
   getAllPayments(): Promise<Array<SalaryPayment>>;
+  clearAllData(): Promise<boolean>;
   // Auth
   assignCallerUserRole(user: Principal, role: UserRole): Promise<void>;
   getCallerUserRole(): Promise<UserRole>;
@@ -206,6 +207,9 @@ export class Backend implements backendInterface {
   }
   async isCallerAdmin(): Promise<boolean> {
     return this.call(() => this.actor.isCallerAdmin());
+  }
+  async clearAllData(): Promise<boolean> {
+    return this.call(() => this.actor.clearAllData());
   }
 }
 
