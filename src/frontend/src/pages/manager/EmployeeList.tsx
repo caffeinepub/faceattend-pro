@@ -27,10 +27,11 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Loader2, Pencil, Plus, Search, Trash2 } from "lucide-react";
+import { Loader2, Pencil, Plus, Search, Trash2, Users } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Employee } from "../../backend.d";
+import { useActor } from "../../hooks/useActor";
 import {
   useDeleteEmployee,
   useEmployees,
@@ -42,15 +43,31 @@ function fmtCurrency(n: number) {
   return `₹${n.toLocaleString("en-IN")}`;
 }
 
-const EMPTY_FORM = {
-  id: "",
-  name: "",
-  department: "",
-  monthlySalary: "",
+const DEPT_COLORS: Record<string, string> = {
+  Driver: "bg-blue-50 text-blue-700 border-blue-200",
+  Office: "bg-violet-50 text-violet-700 border-violet-200",
+  Manager: "bg-amber-50 text-amber-700 border-amber-200",
+  Loader: "bg-emerald-50 text-emerald-700 border-emerald-200",
+  Incharger: "bg-rose-50 text-rose-700 border-rose-200",
 };
+
+function DeptBadge({ dept }: { dept: string }) {
+  const cls =
+    DEPT_COLORS[dept] ?? "bg-muted text-muted-foreground border-border";
+  return (
+    <span
+      className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${cls}`}
+    >
+      {dept}
+    </span>
+  );
+}
+
+const EMPTY_FORM = { id: "", name: "", department: "", monthlySalary: "" };
 
 export default function EmployeeList() {
   const { data: employees = [], isLoading } = useEmployees();
+  const { isFetching: actorLoading } = useActor();
   const registerMut = useRegisterEmployee();
   const updateMut = useUpdateEmployee();
   const deleteMut = useDeleteEmployee();
@@ -86,6 +103,10 @@ export default function EmployeeList() {
   };
 
   const handleSave = async () => {
+    if (actorLoading) {
+      toast.error("Still connecting — please wait a moment and try again");
+      return;
+    }
     if (!form.id || !form.name || !form.department || !form.monthlySalary) {
       toast.error("Please fill all required fields");
       return;
@@ -114,11 +135,16 @@ export default function EmployeeList() {
           monthlySalary: salary,
           joinDate: new Date().toISOString().slice(0, 10),
         });
-        toast.success("Employee registered");
+        toast.success("Employee registered successfully");
       }
       setDialogOpen(false);
     } catch (err: any) {
-      toast.error(err?.message ?? "Something went wrong");
+      const msg = err?.message ?? "Something went wrong";
+      if (msg.includes("No actor")) {
+        toast.error("Connection not ready — please try again in a moment");
+      } else {
+        toast.error(msg);
+      }
     }
   };
 
@@ -126,14 +152,14 @@ export default function EmployeeList() {
     if (!deleteTarget) return;
     try {
       await deleteMut.mutateAsync(deleteTarget.id);
-      toast.success("Employee removed");
+      toast.success("Employee and all records removed");
       setDeleteTarget(null);
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to delete");
     }
   };
 
-  const isSaving = registerMut.isPending || updateMut.isPending;
+  const isSaving = registerMut.isPending || updateMut.isPending || actorLoading;
 
   return (
     <div className="p-6 space-y-6">
@@ -141,7 +167,8 @@ export default function EmployeeList() {
         <div>
           <h1 className="font-display font-bold text-2xl">Employees</h1>
           <p className="text-muted-foreground text-sm mt-1">
-            {employees.length} registered employees
+            {employees.length} registered
+            {employees.length === 1 ? " employee" : " employees"}
           </p>
         </div>
         <Button data-ocid="employees.add_button" onClick={openAdd}>
@@ -153,91 +180,94 @@ export default function EmployeeList() {
         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
           data-ocid="employees.search_input"
-          placeholder="Search by name, department, or ID..."
+          placeholder="Search by name, department, or ID…"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
         />
       </div>
 
-      <Card className="rounded-xl">
+      <Card className="rounded-xl overflow-hidden">
         <CardContent className="p-0">
           {isLoading ? (
             <div className="p-6 space-y-3" data-ocid="employees.loading_state">
-              <Skeleton className="h-14 rounded-lg" />
-              <Skeleton className="h-14 rounded-lg" />
-              <Skeleton className="h-14 rounded-lg" />
-              <Skeleton className="h-14 rounded-lg" />
+              {[1, 2, 3, 4].map((i) => (
+                <Skeleton key={i} className="h-16 rounded-lg" />
+              ))}
             </div>
           ) : filtered.length === 0 ? (
             <div
-              className="text-center py-14 text-muted-foreground"
+              className="flex flex-col items-center py-16 text-muted-foreground"
               data-ocid="employees.empty_state"
             >
-              <p className="text-sm">
-                {search
-                  ? "No employees match your search"
-                  : "No employees yet - add your first employee"}
+              <Users className="w-12 h-12 mb-3 opacity-20" />
+              <p className="text-sm font-medium">
+                {search ? "No employees match your search" : "No employees yet"}
               </p>
+              {!search && (
+                <p className="text-xs mt-1 opacity-70">
+                  Click &ldquo;Add Employee&rdquo; to get started
+                </p>
+              )}
             </div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-muted/40">
-                    <th className="text-left px-5 py-3 font-semibold text-muted-foreground">
+                    <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
                       Employee
                     </th>
-                    <th className="text-left px-4 py-3 font-semibold text-muted-foreground hidden md:table-cell">
-                      Dept
+                    <th className="text-left px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">
+                      Department
                     </th>
-                    <th className="text-right px-4 py-3 font-semibold text-muted-foreground">
+                    <th className="text-right px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
                       Monthly
                     </th>
-                    <th className="text-right px-4 py-3 font-semibold text-muted-foreground hidden sm:table-cell">
+                    <th className="text-right px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">
                       Daily
                     </th>
-                    <th className="px-4 py-3" />
+                    <th className="px-4 py-3.5" />
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((emp, idx) => (
                     <tr
                       key={emp.id}
-                      className="border-b last:border-0 hover:bg-muted/20 transition-colors"
+                      className="border-b last:border-0 hover:bg-muted/30 transition-colors group"
                       data-ocid={`employees.item.${idx + 1}`}
                     >
-                      <td className="px-5 py-3">
+                      <td className="px-5 py-3.5">
                         <div className="flex items-center gap-3">
                           <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">
                             {emp.name.slice(0, 2).toUpperCase()}
                           </div>
                           <div>
-                            <div className="font-medium">{emp.name}</div>
-                            <div className="text-xs text-muted-foreground">
+                            <div className="font-semibold">{emp.name}</div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
                               {emp.id}
                             </div>
                           </div>
                         </div>
                       </td>
-                      <td className="px-4 py-3 text-muted-foreground hidden md:table-cell">
-                        {emp.department}
+                      <td className="px-4 py-3.5 hidden md:table-cell">
+                        <DeptBadge dept={emp.department} />
                       </td>
-                      <td className="px-4 py-3 text-right font-medium">
+                      <td className="px-4 py-3.5 text-right font-semibold">
                         {fmtCurrency(Number(emp.monthlySalary))}
                       </td>
-                      <td className="px-4 py-3 text-right text-muted-foreground hidden sm:table-cell">
+                      <td className="px-4 py-3.5 text-right text-muted-foreground hidden sm:table-cell">
                         {fmtCurrency(
                           Math.round(Number(emp.monthlySalary) / 26),
                         )}
                       </td>
-                      <td className="px-4 py-3">
-                        <div className="flex items-center justify-end gap-1">
+                      <td className="px-4 py-3.5">
+                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                           <Button
                             data-ocid={`employees.edit_button.${idx + 1}`}
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8"
+                            className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
                             onClick={() => openEdit(emp)}
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -246,7 +276,7 @@ export default function EmployeeList() {
                             data-ocid={`employees.delete_button.${idx + 1}`}
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive"
+                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
                             onClick={() => setDeleteTarget(emp)}
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -266,7 +296,7 @@ export default function EmployeeList() {
         <DialogContent className="sm:max-w-md" data-ocid="employees.dialog">
           <DialogHeader>
             <DialogTitle>
-              {editingEmp ? "Edit Salary" : "Add New Employee"}
+              {editingEmp ? "Edit Employee Salary" : "Register New Employee"}
             </DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-2">
@@ -274,10 +304,12 @@ export default function EmployeeList() {
               <>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-1.5">
-                    <Label>Employee ID *</Label>
+                    <Label>
+                      Employee ID <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       data-ocid="employees.id.input"
-                      placeholder="Employee ID"
+                      placeholder="e.g. EMP001"
                       value={form.id}
                       onChange={(e) =>
                         setForm((f) => ({ ...f, id: e.target.value }))
@@ -285,7 +317,9 @@ export default function EmployeeList() {
                     />
                   </div>
                   <div className="space-y-1.5">
-                    <Label>Full Name *</Label>
+                    <Label>
+                      Full Name <span className="text-destructive">*</span>
+                    </Label>
                     <Input
                       data-ocid="employees.name.input"
                       placeholder="Full name"
@@ -297,7 +331,9 @@ export default function EmployeeList() {
                   </div>
                 </div>
                 <div className="space-y-1.5">
-                  <Label>Department *</Label>
+                  <Label>
+                    Department <span className="text-destructive">*</span>
+                  </Label>
                   <Select
                     value={form.department}
                     onValueChange={(val) =>
@@ -318,46 +354,52 @@ export default function EmployeeList() {
                 </div>
               </>
             )}
-
             {editingEmp && (
-              <div className="space-y-1 rounded-lg bg-muted/40 px-4 py-3 text-sm">
-                <div className="flex justify-between">
+              <div className="rounded-xl bg-muted/40 border border-border/60 px-4 py-3 space-y-2 text-sm">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Name</span>
-                  <span className="font-medium">{editingEmp.name}</span>
+                  <span className="font-semibold">{editingEmp.name}</span>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">ID</span>
-                  <span className="font-medium">{editingEmp.id}</span>
+                <div className="flex justify-between items-center">
+                  <span className="text-muted-foreground">Employee ID</span>
+                  <span className="font-mono text-xs bg-muted px-2 py-0.5 rounded">
+                    {editingEmp.id}
+                  </span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between items-center">
                   <span className="text-muted-foreground">Department</span>
-                  <span className="font-medium">{editingEmp.department}</span>
+                  <DeptBadge dept={editingEmp.department} />
                 </div>
               </div>
             )}
-
             <div className="space-y-1.5">
-              <Label>Monthly Salary (₹) *</Label>
+              <Label>
+                Monthly Salary (₹) <span className="text-destructive">*</span>
+              </Label>
               <Input
                 data-ocid="employees.salary.input"
-                placeholder="Amount"
+                placeholder="e.g. 25000"
                 type="number"
+                min="0"
                 value={form.monthlySalary}
                 onChange={(e) =>
                   setForm((f) => ({ ...f, monthlySalary: e.target.value }))
                 }
               />
+              {form.monthlySalary &&
+                !Number.isNaN(Number.parseFloat(form.monthlySalary)) &&
+                Number.parseFloat(form.monthlySalary) > 0 && (
+                  <p className="text-xs text-muted-foreground">
+                    Daily rate:{" "}
+                    <span className="font-medium text-foreground">
+                      {fmtCurrency(
+                        Math.round(Number.parseFloat(form.monthlySalary) / 26),
+                      )}
+                    </span>{" "}
+                    (÷ 26 working days)
+                  </p>
+                )}
             </div>
-            {form.monthlySalary &&
-              !Number.isNaN(Number.parseFloat(form.monthlySalary)) && (
-                <p className="text-xs text-muted-foreground">
-                  Daily rate:{" "}
-                  {fmtCurrency(
-                    Math.round(Number.parseFloat(form.monthlySalary) / 26),
-                  )}{" "}
-                  (monthly ÷ 26 working days)
-                </p>
-              )}
           </div>
           <DialogFooter>
             <Button
@@ -388,7 +430,8 @@ export default function EmployeeList() {
             <AlertDialogTitle>Delete Employee?</AlertDialogTitle>
             <AlertDialogDescription>
               This will permanently remove <strong>{deleteTarget?.name}</strong>{" "}
-              and all their records.
+              and all their attendance records and salary history. This cannot
+              be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

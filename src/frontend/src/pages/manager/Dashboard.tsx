@@ -12,7 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   CalendarX2,
-  Trash2,
+  Loader2,
   TrendingUp,
   UserCheck,
   UserX,
@@ -27,23 +27,56 @@ import {
 } from "../../hooks/useQueries";
 import type { ManagerTab } from "../ManagerPanel";
 
-const STATUS_BADGE: Record<string, { label: string; className: string }> = {
+const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   present: {
     label: "Present",
-    className:
-      "bg-success/10 text-success border-success/30 border rounded-full px-2 py-0.5",
+    cls: "bg-emerald-50 text-emerald-700 border border-emerald-200 rounded-full px-2.5 py-0.5",
   },
   absent: {
     label: "Absent",
-    className:
-      "bg-destructive/10 text-destructive border-destructive/30 border rounded-full px-2 py-0.5",
+    cls: "bg-red-50 text-red-600 border border-red-200 rounded-full px-2.5 py-0.5",
   },
   halfday: {
     label: "Half Day",
-    className:
-      "bg-warning/10 text-warning-foreground border-warning/30 border rounded-full px-2 py-0.5",
+    cls: "bg-amber-50 text-amber-700 border border-amber-200 rounded-full px-2.5 py-0.5",
   },
 };
+
+interface StatCardProps {
+  label: string;
+  value: number;
+  icon: React.ReactNode;
+  gradient: string;
+  onClick: () => void;
+  ocid: string;
+}
+
+function StatCard({
+  label,
+  value,
+  icon,
+  gradient,
+  onClick,
+  ocid,
+}: StatCardProps) {
+  return (
+    <Card
+      className="rounded-2xl cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 overflow-hidden border-0 shadow-md"
+      onClick={onClick}
+      data-ocid={ocid}
+    >
+      <CardContent className="p-0">
+        <div className={`${gradient} p-5`}>
+          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-4 text-white">
+            {icon}
+          </div>
+          <div className="text-3xl font-bold text-white mb-1">{value}</div>
+          <div className="text-sm text-white/80 font-medium">{label}</div>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function Dashboard({
   onNavigate,
@@ -106,90 +139,70 @@ export default function Dashboard({
     }
   };
 
-  const statCards = [
-    {
-      label: "Total Employees",
-      value: employees.length,
-      icon: <Users className="w-5 h-5" />,
-      color: "text-[oklch(0.6_0.18_210)]",
-      bg: "bg-[oklch(0.6_0.18_210/0.1)]",
-      tab: "employees" as ManagerTab,
-    },
-    {
-      label: "Present Today",
-      value: presentToday,
-      icon: <UserCheck className="w-5 h-5" />,
-      color: "text-success",
-      bg: "bg-success/10",
-      tab: "attendance" as ManagerTab,
-    },
-    {
-      label: "Absent Today",
-      value: absentToday,
-      icon: <UserX className="w-5 h-5" />,
-      color: "text-destructive",
-      bg: "bg-destructive/10",
-      tab: "attendance" as ManagerTab,
-    },
-    {
-      label: "Holidays This Month",
-      value: holidaysThisMonth,
-      icon: <CalendarX2 className="w-5 h-5" />,
-      color: "text-warning-foreground",
-      bg: "bg-warning/10",
-      tab: "holidays" as ManagerTab,
-    },
-  ];
+  const dateLabel = now.toLocaleDateString("en-IN", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
 
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-start justify-between">
         <div>
           <h1 className="font-display font-bold text-2xl">Dashboard</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {now.toLocaleDateString("en-IN", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
+          <p className="text-muted-foreground text-sm mt-1">{dateLabel}</p>
         </div>
         <Button
-          variant="destructive"
+          variant="outline"
           size="sm"
-          className="flex items-center gap-2"
+          className="flex items-center gap-2 border-destructive/40 text-destructive hover:bg-destructive/5 hover:border-destructive/60"
           onClick={() => setShowConfirm(true)}
         >
-          <Trash2 className="w-4 h-4" />
           Clear All Data
         </Button>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {statCards.map((card) =>
-          empLoading || attLoading ? (
-            <Skeleton key={card.label} className="h-28 rounded-xl" />
-          ) : (
-            <Card
-              key={card.label}
-              className="rounded-xl cursor-pointer hover:shadow-md transition-shadow"
-              onClick={() => onNavigate(card.tab)}
-              data-ocid={`dashboard.${card.tab}.card`}
-            >
-              <CardContent className="pt-5 pb-5">
-                <div
-                  className={`w-10 h-10 rounded-lg ${card.bg} flex items-center justify-center mb-3 ${card.color}`}
-                >
-                  {card.icon}
-                </div>
-                <div className="text-3xl font-bold mb-1">{card.value}</div>
-                <div className="text-sm text-muted-foreground">
-                  {card.label}
-                </div>
-              </CardContent>
-            </Card>
-          ),
+        {empLoading || attLoading ? (
+          [1, 2, 3, 4].map((i) => (
+            <Skeleton key={i} className="h-36 rounded-2xl" />
+          ))
+        ) : (
+          <>
+            <StatCard
+              label="Total Employees"
+              value={employees.length}
+              icon={<Users className="w-5 h-5" />}
+              gradient="bg-gradient-to-br from-[oklch(0.55_0.18_240)] to-[oklch(0.42_0.2_260)]"
+              onClick={() => onNavigate("employees")}
+              ocid="dashboard.employees.card"
+            />
+            <StatCard
+              label="Present Today"
+              value={presentToday}
+              icon={<UserCheck className="w-5 h-5" />}
+              gradient="bg-gradient-to-br from-[oklch(0.55_0.18_145)] to-[oklch(0.44_0.2_155)]"
+              onClick={() => onNavigate("attendance")}
+              ocid="dashboard.attendance.card"
+            />
+            <StatCard
+              label="Absent Today"
+              value={absentToday}
+              icon={<UserX className="w-5 h-5" />}
+              gradient="bg-gradient-to-br from-[oklch(0.56_0.22_25)] to-[oklch(0.46_0.2_15)]"
+              onClick={() => onNavigate("attendance")}
+              ocid="dashboard.absent.card"
+            />
+            <StatCard
+              label="Holidays"
+              value={holidaysThisMonth}
+              icon={<CalendarX2 className="w-5 h-5" />}
+              gradient="bg-gradient-to-br from-[oklch(0.66_0.18_65)] to-[oklch(0.55_0.2_55)]"
+              onClick={() => onNavigate("holidays")}
+              ocid="dashboard.holidays.card"
+            />
+          </>
         )}
       </div>
 
@@ -206,41 +219,39 @@ export default function Dashboard({
               className="space-y-3"
               data-ocid="dashboard.attendance.loading_state"
             >
-              <Skeleton className="h-12 rounded-lg" />
-              <Skeleton className="h-12 rounded-lg" />
-              <Skeleton className="h-12 rounded-lg" />
-              <Skeleton className="h-12 rounded-lg" />
-              <Skeleton className="h-12 rounded-lg" />
+              {[1, 2, 3, 4, 5].map((i) => (
+                <Skeleton key={i} className="h-12 rounded-lg" />
+              ))}
             </div>
           ) : recentRecords.length === 0 ? (
             <div
               className="text-center py-10 text-muted-foreground"
               data-ocid="dashboard.attendance.empty_state"
             >
-              <CalendarX2 className="w-10 h-10 mx-auto mb-2 opacity-30" />
+              <CalendarX2 className="w-10 h-10 mx-auto mb-2 opacity-25" />
               <p className="text-sm">No attendance records yet this month</p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-border/60">
               {recentRecords.map((rec, idx) => {
                 const badge = STATUS_BADGE[rec.status] ?? {
                   label: rec.status,
-                  className: "",
+                  cls: "",
                 };
                 return (
                   <div
                     key={rec.id}
-                    className="flex items-center justify-between py-2.5"
+                    className="flex items-center justify-between py-3"
                     data-ocid={`dashboard.attendance.item.${idx + 1}`}
                   >
                     <div className="flex items-center gap-3">
-                      <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-primary font-semibold text-xs">
+                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
                         {(empMap[rec.employeeId] ?? "?")
                           .slice(0, 2)
                           .toUpperCase()}
                       </div>
                       <div>
-                        <div className="text-sm font-medium">
+                        <div className="text-sm font-semibold">
                           {empMap[rec.employeeId] ?? rec.employeeId}
                         </div>
                         <div className="text-xs text-muted-foreground">
@@ -248,7 +259,7 @@ export default function Dashboard({
                         </div>
                       </div>
                     </div>
-                    <span className={`text-xs font-medium ${badge.className}`}>
+                    <span className={`text-xs font-medium ${badge.cls}`}>
                       {badge.label}
                     </span>
                   </div>
@@ -260,9 +271,9 @@ export default function Dashboard({
       </Card>
 
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <DialogContent>
+        <DialogContent data-ocid="dashboard.clear.dialog">
           <DialogHeader>
-            <DialogTitle>Clear All Data</DialogTitle>
+            <DialogTitle>Clear All Data?</DialogTitle>
             <DialogDescription>
               This will permanently delete all employees, attendance records,
               holidays, and salary payments. This action cannot be undone.
@@ -273,6 +284,7 @@ export default function Dashboard({
               variant="outline"
               onClick={() => setShowConfirm(false)}
               disabled={clearing}
+              data-ocid="dashboard.clear.cancel_button"
             >
               Cancel
             </Button>
@@ -280,8 +292,16 @@ export default function Dashboard({
               variant="destructive"
               onClick={handleClearAll}
               disabled={clearing}
+              data-ocid="dashboard.clear.confirm_button"
             >
-              {clearing ? "Clearing..." : "Yes, Clear All"}
+              {clearing ? (
+                <>
+                  <Loader2 className="w-4 h-4 mr-1.5 animate-spin" />
+                  Clearing…
+                </>
+              ) : (
+                "Yes, Clear All"
+              )}
             </Button>
           </DialogFooter>
         </DialogContent>

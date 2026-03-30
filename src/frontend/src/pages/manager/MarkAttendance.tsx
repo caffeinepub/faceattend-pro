@@ -1,13 +1,8 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  CheckCircle2,
-  Loader2,
-  MinusCircle,
-  Users,
-  XCircle,
-} from "lucide-react";
+import { Check, Loader2, MinusCircle, Users, X } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -19,18 +14,23 @@ import {
 const STATUS_CONFIG = {
   present: {
     label: "Present",
-    className: "bg-success/10 text-success border-success/30 border",
+    className: "bg-emerald-50 text-emerald-700 border border-emerald-200",
   },
   absent: {
     label: "Absent",
-    className:
-      "bg-destructive/10 text-destructive border-destructive/30 border",
+    className: "bg-red-50 text-red-600 border border-red-200",
   },
   halfday: {
     label: "Half Day",
-    className: "bg-warning/10 text-warning-foreground border-warning/30 border",
+    className: "bg-amber-50 text-amber-700 border border-amber-200",
   },
 };
+
+function getInitials(name: string) {
+  const parts = name.trim().split(" ");
+  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+  return name.slice(0, 2).toUpperCase();
+}
 
 export default function MarkAttendance() {
   const now = new Date();
@@ -45,7 +45,6 @@ export default function MarkAttendance() {
   );
   const markMut = useMarkAttendance();
   const [marking, setMarking] = useState<Record<string, boolean>>({});
-  // Track which employees are in "edit mode" (showing change buttons)
   const [editingIds, setEditingIds] = useState<Record<string, boolean>>({});
 
   const todayMap = useMemo(() => {
@@ -61,7 +60,6 @@ export default function MarkAttendance() {
     try {
       await markMut.mutateAsync({ employeeId, date: today, status });
       toast.success(`Marked as ${status}`);
-      // Exit edit mode after marking
       setEditingIds((prev) => ({ ...prev, [employeeId]: false }));
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to mark attendance");
@@ -82,57 +80,71 @@ export default function MarkAttendance() {
   const isLoading = empLoading || attLoading;
   const markedCount = Object.keys(todayMap).length;
 
+  const dateLabel = now.toLocaleDateString("en-IN", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+
   return (
-    <div className="p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4">
+    <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-5">
+      {/* Header */}
+      <div className="space-y-3">
         <div>
-          <h1 className="font-display font-bold text-2xl">Mark Attendance</h1>
-          <p className="text-muted-foreground text-sm mt-1">
-            {now.toLocaleDateString("en-IN", {
-              weekday: "long",
-              year: "numeric",
-              month: "long",
-              day: "numeric",
-            })}
-          </p>
+          <h1 className="font-display font-bold text-2xl tracking-tight">
+            Mark Attendance
+          </h1>
+          <p className="text-muted-foreground text-sm mt-0.5">{dateLabel}</p>
         </div>
-        <div className="flex items-center gap-3">
-          <div className="text-sm text-muted-foreground">
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">{markedCount}</span>
-            /{employees.length} marked
-          </div>
+            <span>/{employees.length} marked</span>
+          </p>
           <Button
             data-ocid="attendance.mark_all_button"
             variant="outline"
             size="sm"
+            className="rounded-full h-8 px-4 text-xs font-medium"
             onClick={handleMarkAllPresent}
             disabled={isLoading}
           >
-            <Users className="w-4 h-4 mr-1.5" /> Mark All Present
+            <Users className="w-3.5 h-3.5 mr-1.5" />
+            Mark All Present
           </Button>
         </div>
       </div>
 
-      <Card className="rounded-xl">
+      {/* Employee List Card */}
+      <Card className="rounded-2xl shadow-sm border-border/60 overflow-hidden">
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-6 space-y-3" data-ocid="attendance.loading_state">
-              <Skeleton className="h-16 rounded-lg" />
-              <Skeleton className="h-16 rounded-lg" />
-              <Skeleton className="h-16 rounded-lg" />
-              <Skeleton className="h-16 rounded-lg" />
-              <Skeleton className="h-16 rounded-lg" />
+            <div className="divide-y" data-ocid="attendance.loading_state">
+              {[1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="flex items-center gap-4 px-5 py-4">
+                  <Skeleton className="w-11 h-11 rounded-full flex-shrink-0" />
+                  <div className="flex-1 space-y-1.5">
+                    <Skeleton className="h-4 w-32" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                  <Skeleton className="h-9 w-36 rounded-full" />
+                </div>
+              ))}
             </div>
           ) : employees.length === 0 ? (
             <div
-              className="text-center py-14 text-muted-foreground"
+              className="text-center py-16 text-muted-foreground"
               data-ocid="attendance.empty_state"
             >
-              <Users className="w-10 h-10 mx-auto mb-2 opacity-30" />
-              <p className="text-sm">No employees registered yet</p>
+              <Users className="w-10 h-10 mx-auto mb-3 opacity-25" />
+              <p className="text-sm font-medium">No employees registered yet</p>
+              <p className="text-xs mt-1 opacity-70">
+                Add employees from the Employees section
+              </p>
             </div>
           ) : (
-            <div className="divide-y">
+            <div className="divide-y divide-border/50">
               {employees.map((emp, idx) => {
                 const status = todayMap[emp.id];
                 const isMarking = marking[emp.id];
@@ -140,38 +152,43 @@ export default function MarkAttendance() {
                 const statusConf = status
                   ? STATUS_CONFIG[status as keyof typeof STATUS_CONFIG]
                   : null;
+
                 return (
                   <div
                     key={emp.id}
-                    className="flex items-center gap-4 px-5 py-3"
+                    className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4"
                     data-ocid={`attendance.item.${idx + 1}`}
                   >
-                    <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm flex-shrink-0">
-                      {emp.name.slice(0, 2).toUpperCase()}
+                    {/* Avatar */}
+                    <div className="w-11 h-11 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm flex-shrink-0 select-none">
+                      {getInitials(emp.name)}
                     </div>
+
+                    {/* Name + meta */}
                     <div className="flex-1 min-w-0">
-                      <div className="font-medium text-sm truncate">
+                      <p className="font-semibold text-sm leading-tight truncate">
                         {emp.name}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5 truncate">
                         {emp.department} &middot; {emp.id}
-                      </div>
+                      </p>
                     </div>
+
+                    {/* Actions */}
                     <div className="flex items-center gap-2 flex-shrink-0">
                       {isMarking ? (
                         <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                       ) : statusConf && !isEditing ? (
-                        // Already marked — show badge + Edit button
+                        /* Marked — badge + Edit link */
                         <div className="flex items-center gap-2">
                           <span
-                            className={`text-xs px-2.5 py-1 rounded-full font-medium ${statusConf.className}`}
+                            className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ${statusConf.className}`}
                           >
                             {statusConf.label}
                           </span>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="text-xs h-7 px-2 text-muted-foreground"
+                          <button
+                            type="button"
+                            className="text-xs text-muted-foreground hover:text-foreground transition-colors font-medium underline-offset-2 hover:underline"
                             onClick={() =>
                               setEditingIds((prev) => ({
                                 ...prev,
@@ -181,54 +198,69 @@ export default function MarkAttendance() {
                             data-ocid={`attendance.edit_button.${idx + 1}`}
                           >
                             Edit
-                          </Button>
+                          </button>
+                        </div>
+                      ) : isEditing ? (
+                        /* Edit mode — all 3 buttons + Cancel */
+                        <div className="flex items-center gap-1.5 flex-wrap justify-end">
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 h-8 px-3 rounded-full border border-emerald-400 text-emerald-700 text-xs font-medium hover:bg-emerald-50 transition-colors"
+                            onClick={() => handleMark(emp.id, "present")}
+                            data-ocid={`attendance.present_button.${idx + 1}`}
+                          >
+                            <Check className="w-3.5 h-3.5" /> Present
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 h-8 px-3 rounded-full border border-red-400 text-red-600 text-xs font-medium hover:bg-red-50 transition-colors"
+                            onClick={() => handleMark(emp.id, "absent")}
+                            data-ocid={`attendance.absent_button.${idx + 1}`}
+                          >
+                            <X className="w-3.5 h-3.5" /> Absent
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1 h-8 px-3 rounded-full border border-amber-400 text-amber-700 text-xs font-medium hover:bg-amber-50 transition-colors"
+                            onClick={() => handleMark(emp.id, "halfday")}
+                            data-ocid={`attendance.halfday_button.${idx + 1}`}
+                          >
+                            <MinusCircle className="w-3.5 h-3.5" /> Half Day
+                          </button>
+                          <button
+                            type="button"
+                            className="h-8 px-2.5 rounded-full text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
+                            onClick={() =>
+                              setEditingIds((prev) => ({
+                                ...prev,
+                                [emp.id]: false,
+                              }))
+                            }
+                          >
+                            Cancel
+                          </button>
                         </div>
                       ) : (
-                        // Not yet marked OR in edit mode — show all 3 action buttons
-                        <div className="flex gap-1 flex-wrap justify-end">
-                          <Button
-                            data-ocid={`attendance.present_button.${idx + 1}`}
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs border-success/40 text-success hover:bg-success/10"
+                        /* Default — Present + Absent only */
+                        <div className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full border border-emerald-400 text-emerald-700 text-xs font-semibold hover:bg-emerald-50 active:scale-95 transition-all"
                             onClick={() => handleMark(emp.id, "present")}
+                            data-ocid={`attendance.present_button.${idx + 1}`}
                           >
-                            <CheckCircle2 className="w-3.5 h-3.5 mr-1" />{" "}
+                            <Check className="w-3.5 h-3.5" />
                             Present
-                          </Button>
-                          <Button
-                            data-ocid={`attendance.absent_button.${idx + 1}`}
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs border-destructive/40 text-destructive hover:bg-destructive/10"
+                          </button>
+                          <button
+                            type="button"
+                            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full border border-red-400 text-red-600 text-xs font-semibold hover:bg-red-50 active:scale-95 transition-all"
                             onClick={() => handleMark(emp.id, "absent")}
+                            data-ocid={`attendance.absent_button.${idx + 1}`}
                           >
-                            <XCircle className="w-3.5 h-3.5 mr-1" /> Absent
-                          </Button>
-                          <Button
-                            data-ocid={`attendance.halfday_button.${idx + 1}`}
-                            size="sm"
-                            variant="outline"
-                            className="h-8 text-xs hidden sm:flex"
-                            onClick={() => handleMark(emp.id, "halfday")}
-                          >
-                            <MinusCircle className="w-3.5 h-3.5 mr-1" /> Half
-                          </Button>
-                          {isEditing && (
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              className="h-8 text-xs text-muted-foreground"
-                              onClick={() =>
-                                setEditingIds((prev) => ({
-                                  ...prev,
-                                  [emp.id]: false,
-                                }))
-                              }
-                            >
-                              Cancel
-                            </Button>
-                          )}
+                            <X className="w-3.5 h-3.5" />
+                            Absent
+                          </button>
                         </div>
                       )}
                     </div>
