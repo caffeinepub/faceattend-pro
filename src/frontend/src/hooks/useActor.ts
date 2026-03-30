@@ -4,28 +4,27 @@ import type { backendInterface } from "../backend";
 import { createActorWithConfig } from "../config";
 
 const ACTOR_QUERY_KEY = "actor";
+
+let cachedActor: backendInterface | null = null;
+
 export function useActor() {
   const queryClient = useQueryClient();
   const actorQuery = useQuery<backendInterface>({
     queryKey: [ACTOR_QUERY_KEY],
     queryFn: async () => {
-      return await createActorWithConfig();
+      if (cachedActor) return cachedActor;
+      const actor = await createActorWithConfig();
+      cachedActor = actor;
+      return actor;
     },
     staleTime: Number.POSITIVE_INFINITY,
-    enabled: true,
+    retry: 3,
   });
 
   useEffect(() => {
     if (actorQuery.data) {
       queryClient.invalidateQueries({
-        predicate: (query) => {
-          return !query.queryKey.includes(ACTOR_QUERY_KEY);
-        },
-      });
-      queryClient.refetchQueries({
-        predicate: (query) => {
-          return !query.queryKey.includes(ACTOR_QUERY_KEY);
-        },
+        predicate: (query) => !query.queryKey.includes(ACTOR_QUERY_KEY),
       });
     }
   }, [actorQuery.data, queryClient]);
