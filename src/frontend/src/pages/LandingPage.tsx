@@ -47,7 +47,7 @@ export default function LandingPage({ onNavigate }: Props) {
             <CheckCircle2 className="w-5 h-5 text-primary-foreground" />
           </div>
           <span className="text-white font-display font-bold text-xl">
-            AttendPro
+            PE Office Management
           </span>
         </div>
         <span className="text-[oklch(0.65_0.04_240)] text-sm hidden sm:block">

@@ -63,7 +63,13 @@ function DeptBadge({ dept }: { dept: string }) {
   );
 }
 
-const EMPTY_FORM = { id: "", name: "", department: "", monthlySalary: "" };
+const EMPTY_FORM = {
+  id: "",
+  name: "",
+  department: "",
+  phone: "",
+  monthlySalary: "",
+};
 
 export default function EmployeeList() {
   const { data: employees = [], isLoading } = useEmployees();
@@ -97,6 +103,7 @@ export default function EmployeeList() {
       id: emp.id,
       name: emp.name,
       department: emp.department,
+      phone: emp.phone ?? "",
       monthlySalary: String(Number(emp.monthlySalary)),
     });
     setDialogOpen(true);
@@ -111,6 +118,10 @@ export default function EmployeeList() {
       toast.error("Please fill all required fields");
       return;
     }
+    if (!editingEmp && !form.phone) {
+      toast.error("Please enter a mobile number");
+      return;
+    }
     const salary = Number.parseFloat(form.monthlySalary);
     if (Number.isNaN(salary) || salary <= 0) {
       toast.error("Enter a valid monthly salary");
@@ -122,7 +133,7 @@ export default function EmployeeList() {
           id: form.id,
           name: form.name,
           department: form.department,
-          phone: "",
+          phone: editingEmp.phone ?? "",
           monthlySalary: salary,
         });
         toast.success("Salary updated");
@@ -131,7 +142,7 @@ export default function EmployeeList() {
           id: form.id,
           name: form.name,
           department: form.department,
-          phone: "",
+          phone: form.phone,
           monthlySalary: salary,
           joinDate: new Date().toISOString().slice(0, 10),
         });
@@ -221,6 +232,9 @@ export default function EmployeeList() {
                     <th className="text-left px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">
                       Department
                     </th>
+                    <th className="text-left px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
+                      Mobile
+                    </th>
                     <th className="text-right px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
                       Monthly
                     </th>
@@ -252,6 +266,9 @@ export default function EmployeeList() {
                       </td>
                       <td className="px-4 py-3.5 hidden md:table-cell">
                         <DeptBadge dept={emp.department} />
+                      </td>
+                      <td className="px-4 py-3.5 text-sm text-muted-foreground hidden lg:table-cell">
+                        {emp.phone || "—"}
                       </td>
                       <td className="px-4 py-3.5 text-right font-semibold">
                         {fmtCurrency(Number(emp.monthlySalary))}
@@ -352,6 +369,20 @@ export default function EmployeeList() {
                     </SelectContent>
                   </Select>
                 </div>
+                <div className="space-y-1.5">
+                  <Label>
+                    Mobile Number <span className="text-destructive">*</span>
+                  </Label>
+                  <Input
+                    data-ocid="employees.phone.input"
+                    placeholder="e.g. 9876543210"
+                    type="tel"
+                    value={form.phone}
+                    onChange={(e) =>
+                      setForm((f) => ({ ...f, phone: e.target.value }))
+                    }
+                  />
+                </div>
               </>
             )}
             {editingEmp && (
@@ -370,6 +401,12 @@ export default function EmployeeList() {
                   <span className="text-muted-foreground">Department</span>
                   <DeptBadge dept={editingEmp.department} />
                 </div>
+                {editingEmp.phone && (
+                  <div className="flex justify-between items-center">
+                    <span className="text-muted-foreground">Mobile</span>
+                    <span className="font-medium">{editingEmp.phone}</span>
+                  </div>
+                )}
               </div>
             )}
             <div className="space-y-1.5">
