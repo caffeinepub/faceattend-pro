@@ -7,11 +7,13 @@ import {
   CheckCircle2,
   ChevronLeft,
   DollarSign,
+  FileText,
   LayoutDashboard,
   Menu,
   Users,
 } from "lucide-react";
 import { useState } from "react";
+import AttendanceReport from "./manager/AttendanceReport";
 import Dashboard from "./manager/Dashboard";
 import EmployeeList from "./manager/EmployeeList";
 import HolidayManager from "./manager/HolidayManager";
@@ -25,7 +27,8 @@ export type ManagerTab =
   | "attendance"
   | "monthly"
   | "salary"
-  | "holidays";
+  | "holidays"
+  | "attendancereport";
 
 const NAV_ITEMS: { id: ManagerTab; label: string; icon: React.ReactNode }[] = [
   {
@@ -43,6 +46,11 @@ const NAV_ITEMS: { id: ManagerTab; label: string; icon: React.ReactNode }[] = [
     id: "monthly",
     label: "Monthly Report",
     icon: <BarChart3 className="w-5 h-5" />,
+  },
+  {
+    id: "attendancereport",
+    label: "Attendance Report",
+    icon: <FileText className="w-5 h-5" />,
   },
   { id: "salary", label: "Salary", icon: <DollarSign className="w-5 h-5" /> },
   {
@@ -74,7 +82,7 @@ function SidebarContent({
           Manager Portal
         </p>
       </div>
-      <nav className="flex-1 p-3 space-y-1">
+      <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {NAV_ITEMS.map((item) => (
           <button
             key={item.id}
@@ -161,6 +169,7 @@ export default function ManagerPanel({ onBack }: { onBack: () => void }) {
           {activeTab === "employees" && <EmployeeList />}
           {activeTab === "attendance" && <MarkAttendance />}
           {activeTab === "monthly" && <MonthlyReport />}
+          {activeTab === "attendancereport" && <AttendanceReport />}
           {activeTab === "salary" && <SalaryReport />}
           {activeTab === "holidays" && <HolidayManager />}
         </main>

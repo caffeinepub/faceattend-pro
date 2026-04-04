@@ -101,14 +101,17 @@ export default function MonthlyReport() {
             Attendance summary by employee
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={handleExport}
-          data-ocid="monthly.export_button"
-        >
-          <Download className="w-4 h-4 mr-1.5" /> Export CSV
-        </Button>
+        <div className="flex gap-2 flex-wrap">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleExport}
+            data-ocid="monthly.export_button"
+            className="gap-1.5"
+          >
+            <Download className="w-4 h-4" /> Export CSV
+          </Button>
+        </div>
       </div>
       <div className="flex gap-3">
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
@@ -178,6 +181,9 @@ export default function MonthlyReport() {
                     <th className="text-center px-4 py-3 font-semibold text-warning-foreground">
                       Half Day
                     </th>
+                    <th className="text-center px-4 py-3 font-semibold text-muted-foreground hidden sm:table-cell">
+                      Total
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
@@ -212,6 +218,9 @@ export default function MonthlyReport() {
                       <td className="px-4 py-3 text-center font-semibold text-warning-foreground">
                         {row.halfday}
                       </td>
+                      <td className="px-4 py-3 text-center text-muted-foreground hidden sm:table-cell">
+                        {row.present + row.absent + row.halfday}
+                      </td>
                     </tr>
                   ))}
                   <tr className="bg-muted/30 font-semibold">
@@ -226,6 +235,9 @@ export default function MonthlyReport() {
                     </td>
                     <td className="px-4 py-3 text-center text-warning-foreground">
                       {totals.halfday}
+                    </td>
+                    <td className="px-4 py-3 text-center hidden sm:table-cell">
+                      {totals.present + totals.absent + totals.halfday}
                     </td>
                   </tr>
                 </tbody>
