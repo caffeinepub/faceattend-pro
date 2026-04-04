@@ -139,7 +139,7 @@ export default function EmployeePortal({ onBack }: { onBack: () => void }) {
                 </Label>
                 <Input
                   data-ocid="employee.login.input"
-                  placeholder="e.g. EMP001"
+                  placeholder="Employee ID"
                   value={empId}
                   onChange={(e) => setEmpId(e.target.value)}
                   onKeyDown={(e) =>

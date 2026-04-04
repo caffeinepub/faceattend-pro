@@ -326,7 +326,7 @@ export default function EmployeeList() {
                     </Label>
                     <Input
                       data-ocid="employees.id.input"
-                      placeholder="e.g. EMP001"
+                      placeholder="Employee ID"
                       value={form.id}
                       onChange={(e) =>
                         setForm((f) => ({ ...f, id: e.target.value }))
@@ -375,7 +375,7 @@ export default function EmployeeList() {
                   </Label>
                   <Input
                     data-ocid="employees.phone.input"
-                    placeholder="e.g. 9876543210"
+                    placeholder="Mobile Number"
                     type="tel"
                     value={form.phone}
                     onChange={(e) =>
@@ -415,7 +415,7 @@ export default function EmployeeList() {
               </Label>
               <Input
                 data-ocid="employees.salary.input"
-                placeholder="e.g. 25000"
+                placeholder="Monthly Salary"
                 type="number"
                 min="0"
                 value={form.monthlySalary}
