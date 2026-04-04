@@ -10,6 +10,7 @@ import {
   Users,
   X,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -105,7 +106,12 @@ export default function MarkAttendance() {
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-5">
       {/* Header */}
-      <div className="space-y-3">
+      <motion.div
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="space-y-3"
+      >
         <div>
           <h1 className="font-display font-bold text-2xl tracking-tight">
             Mark Attendance
@@ -139,8 +145,11 @@ export default function MarkAttendance() {
             />
           </div>
           {selectedDate !== todayStr && (
-            <button
+            <motion.button
               type="button"
+              initial={{ opacity: 0, scale: 0.8 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.8 }}
               onClick={() => {
                 setSelectedDate(todayStr);
                 setEditingIds({});
@@ -148,7 +157,7 @@ export default function MarkAttendance() {
               className="text-xs text-primary font-medium hover:underline underline-offset-2 transition-colors"
             >
               Back to Today
-            </button>
+            </motion.button>
           )}
         </div>
 
@@ -157,19 +166,21 @@ export default function MarkAttendance() {
             <span className="font-semibold text-foreground">{markedCount}</span>
             <span>/{employees.length} marked</span>
           </p>
-          <Button
-            data-ocid="attendance.mark_all_button"
-            variant="outline"
-            size="sm"
-            className="rounded-full h-8 px-4 text-xs font-medium"
-            onClick={handleMarkAllPresent}
-            disabled={isLoading}
-          >
-            <Users className="w-3.5 h-3.5 mr-1.5" />
-            Mark All Present
-          </Button>
+          <motion.div whileTap={{ scale: 0.95 }}>
+            <Button
+              data-ocid="attendance.mark_all_button"
+              variant="outline"
+              size="sm"
+              className="rounded-full h-8 px-4 text-xs font-medium"
+              onClick={handleMarkAllPresent}
+              disabled={isLoading}
+            >
+              <Users className="w-3.5 h-3.5 mr-1.5" />
+              Mark All Present
+            </Button>
+          </motion.div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Employee List Card */}
       <Card className="rounded-2xl shadow-sm border-border/60 overflow-hidden">
@@ -209,15 +220,21 @@ export default function MarkAttendance() {
                   : null;
 
                 return (
-                  <div
+                  <motion.div
                     key={emp.id}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.3, delay: idx * 0.05 }}
                     className="flex items-center gap-3 sm:gap-4 px-4 sm:px-5 py-4"
                     data-ocid={`attendance.item.${idx + 1}`}
                   >
                     {/* Avatar */}
-                    <div className="w-11 h-11 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm flex-shrink-0 select-none">
+                    <motion.div
+                      whileHover={{ scale: 1.1 }}
+                      className="w-11 h-11 rounded-full bg-emerald-100 flex items-center justify-center text-emerald-700 font-bold text-sm flex-shrink-0 select-none"
+                    >
                       {getInitials(emp.name)}
-                    </div>
+                    </motion.div>
 
                     {/* Name + meta */}
                     <div className="flex-1 min-w-0">
@@ -234,13 +251,19 @@ export default function MarkAttendance() {
                       {isMarking ? (
                         <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
                       ) : statusConf && !isEditing ? (
-                        /* Marked — badge + Edit link */
                         <div className="flex items-center gap-2">
-                          <span
-                            className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ${statusConf.className}`}
-                          >
-                            {statusConf.label}
-                          </span>
+                          <AnimatePresence mode="wait">
+                            <motion.span
+                              key={status}
+                              initial={{ opacity: 0, scale: 0.8 }}
+                              animate={{ opacity: 1, scale: 1 }}
+                              exit={{ opacity: 0, scale: 0.8 }}
+                              transition={{ duration: 0.18 }}
+                              className={`text-xs px-3 py-1 rounded-full font-medium whitespace-nowrap ${statusConf.className}`}
+                            >
+                              {statusConf.label}
+                            </motion.span>
+                          </AnimatePresence>
                           <button
                             type="button"
                             className="text-xs text-muted-foreground hover:text-foreground transition-colors font-medium underline-offset-2 hover:underline"
@@ -256,32 +279,34 @@ export default function MarkAttendance() {
                           </button>
                         </div>
                       ) : isEditing ? (
-                        /* Edit mode — all 3 buttons + Cancel */
                         <div className="flex items-center gap-1.5 flex-wrap justify-end">
-                          <button
+                          <motion.button
                             type="button"
+                            whileTap={{ scale: 0.92 }}
                             className="inline-flex items-center gap-1 h-8 px-3 rounded-full border border-emerald-400 text-emerald-700 text-xs font-medium hover:bg-emerald-50 transition-colors"
                             onClick={() => handleMark(emp.id, "present")}
                             data-ocid={`attendance.present_button.${idx + 1}`}
                           >
                             <Check className="w-3.5 h-3.5" /> Present
-                          </button>
-                          <button
+                          </motion.button>
+                          <motion.button
                             type="button"
+                            whileTap={{ scale: 0.92 }}
                             className="inline-flex items-center gap-1 h-8 px-3 rounded-full border border-red-400 text-red-600 text-xs font-medium hover:bg-red-50 transition-colors"
                             onClick={() => handleMark(emp.id, "absent")}
                             data-ocid={`attendance.absent_button.${idx + 1}`}
                           >
                             <X className="w-3.5 h-3.5" /> Absent
-                          </button>
-                          <button
+                          </motion.button>
+                          <motion.button
                             type="button"
+                            whileTap={{ scale: 0.92 }}
                             className="inline-flex items-center gap-1 h-8 px-3 rounded-full border border-amber-400 text-amber-700 text-xs font-medium hover:bg-amber-50 transition-colors"
                             onClick={() => handleMark(emp.id, "halfday")}
                             data-ocid={`attendance.halfday_button.${idx + 1}`}
                           >
                             <MinusCircle className="w-3.5 h-3.5" /> Half Day
-                          </button>
+                          </motion.button>
                           <button
                             type="button"
                             className="h-8 px-2.5 rounded-full text-xs text-muted-foreground hover:text-foreground font-medium transition-colors"
@@ -296,30 +321,33 @@ export default function MarkAttendance() {
                           </button>
                         </div>
                       ) : (
-                        /* Default — Present + Absent only */
                         <div className="flex items-center gap-2">
-                          <button
+                          <motion.button
                             type="button"
-                            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full border border-emerald-400 text-emerald-700 text-xs font-semibold hover:bg-emerald-50 active:scale-95 transition-all"
+                            whileTap={{ scale: 0.92 }}
+                            whileHover={{ scale: 1.04 }}
+                            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full border border-emerald-400 text-emerald-700 text-xs font-semibold hover:bg-emerald-50 transition-colors"
                             onClick={() => handleMark(emp.id, "present")}
                             data-ocid={`attendance.present_button.${idx + 1}`}
                           >
                             <Check className="w-3.5 h-3.5" />
                             Present
-                          </button>
-                          <button
+                          </motion.button>
+                          <motion.button
                             type="button"
-                            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full border border-red-400 text-red-600 text-xs font-semibold hover:bg-red-50 active:scale-95 transition-all"
+                            whileTap={{ scale: 0.92 }}
+                            whileHover={{ scale: 1.04 }}
+                            className="inline-flex items-center gap-1.5 h-9 px-4 rounded-full border border-red-400 text-red-600 text-xs font-semibold hover:bg-red-50 transition-colors"
                             onClick={() => handleMark(emp.id, "absent")}
                             data-ocid={`attendance.absent_button.${idx + 1}`}
                           >
                             <X className="w-3.5 h-3.5" />
                             Absent
-                          </button>
+                          </motion.button>
                         </div>
                       )}
                     </div>
-                  </div>
+                  </motion.div>
                 );
               })}
             </div>

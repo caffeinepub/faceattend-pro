@@ -12,6 +12,7 @@ import {
   Menu,
   Users,
 } from "lucide-react";
+import { AnimatePresence, motion } from "motion/react";
 import { useState } from "react";
 import AttendanceReport from "./manager/AttendanceReport";
 import Dashboard from "./manager/Dashboard";
@@ -71,33 +72,61 @@ function SidebarContent({
 }) {
   return (
     <div className="flex flex-col h-full bg-sidebar text-sidebar-foreground">
-      <div className="px-5 py-5 border-b border-sidebar-border">
+      <motion.div
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.35 }}
+        className="px-5 py-5 border-b border-sidebar-border"
+      >
         <div className="flex items-center gap-2 mb-1">
-          <div className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center">
+          <motion.div
+            animate={{ rotate: [0, 10, -10, 0] }}
+            transition={{
+              duration: 4,
+              repeat: Number.POSITIVE_INFINITY,
+              ease: "easeInOut",
+            }}
+            className="w-8 h-8 rounded-lg bg-primary flex items-center justify-center"
+          >
             <CheckCircle2 className="w-5 h-5 text-primary-foreground" />
-          </div>
+          </motion.div>
           <span className="font-display font-bold text-lg">AttendPro</span>
         </div>
         <p className="text-xs text-[oklch(0.55_0.04_240)] ml-10">
           Manager Portal
         </p>
-      </div>
+      </motion.div>
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map((item) => (
-          <button
+        {NAV_ITEMS.map((item, index) => (
+          <motion.div
             key={item.id}
-            type="button"
-            data-ocid={`manager.nav.${item.id}`}
-            onClick={() => onSelect(item.id)}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
-              active === item.id
-                ? "bg-primary text-primary-foreground"
-                : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
-            }`}
+            initial={{ opacity: 0, x: -20 }}
+            animate={{ opacity: 1, x: 0 }}
+            transition={{ duration: 0.3, delay: 0.05 + index * 0.055 }}
+            className="relative"
           >
-            {item.icon}
-            {item.label}
-          </button>
+            {active === item.id && (
+              <motion.div
+                layoutId="activeNavPill"
+                className="absolute inset-0 bg-primary rounded-lg"
+                transition={{ type: "spring", stiffness: 380, damping: 30 }}
+              />
+            )}
+            <button
+              key={item.id}
+              type="button"
+              data-ocid={`manager.nav.${item.id}`}
+              onClick={() => onSelect(item.id)}
+              className={`relative z-10 w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${
+                active === item.id
+                  ? "text-primary-foreground"
+                  : "text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground"
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </button>
+          </motion.div>
         ))}
       </nav>
       <div className="p-3 border-t border-sidebar-border">
@@ -165,13 +194,26 @@ export default function ManagerPanel({ onBack }: { onBack: () => void }) {
         </header>
 
         <main className="flex-1 overflow-auto">
-          {activeTab === "dashboard" && <Dashboard onNavigate={setActiveTab} />}
-          {activeTab === "employees" && <EmployeeList />}
-          {activeTab === "attendance" && <MarkAttendance />}
-          {activeTab === "monthly" && <MonthlyReport />}
-          {activeTab === "attendancereport" && <AttendanceReport />}
-          {activeTab === "salary" && <SalaryReport />}
-          {activeTab === "holidays" && <HolidayManager />}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={activeTab}
+              initial={{ opacity: 0, x: 18 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -18 }}
+              transition={{ duration: 0.2, ease: "easeInOut" }}
+              className="h-full"
+            >
+              {activeTab === "dashboard" && (
+                <Dashboard onNavigate={setActiveTab} />
+              )}
+              {activeTab === "employees" && <EmployeeList />}
+              {activeTab === "attendance" && <MarkAttendance />}
+              {activeTab === "monthly" && <MonthlyReport />}
+              {activeTab === "attendancereport" && <AttendanceReport />}
+              {activeTab === "salary" && <SalaryReport />}
+              {activeTab === "holidays" && <HolidayManager />}
+            </motion.div>
+          </AnimatePresence>
         </main>
       </div>
     </div>

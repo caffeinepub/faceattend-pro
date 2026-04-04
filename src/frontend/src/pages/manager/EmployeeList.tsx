@@ -28,6 +28,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Loader2, Pencil, Plus, Search, Trash2, Users } from "lucide-react";
+import { motion } from "motion/react";
 import { useState } from "react";
 import { toast } from "sonner";
 import type { Employee } from "../../backend.d";
@@ -174,7 +175,12 @@ export default function EmployeeList() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <motion.div
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+      >
         <div>
           <h1 className="font-display font-bold text-2xl">Employees</h1>
           <p className="text-muted-foreground text-sm mt-1">
@@ -182,12 +188,19 @@ export default function EmployeeList() {
             {employees.length === 1 ? " employee" : " employees"}
           </p>
         </div>
-        <Button data-ocid="employees.add_button" onClick={openAdd}>
-          <Plus className="w-4 h-4 mr-1.5" /> Add Employee
-        </Button>
-      </div>
+        <motion.div whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}>
+          <Button data-ocid="employees.add_button" onClick={openAdd}>
+            <Plus className="w-4 h-4 mr-1.5" /> Add Employee
+          </Button>
+        </motion.div>
+      </motion.div>
 
-      <div className="relative">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.3, delay: 0.1 }}
+        className="relative"
+      >
         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
         <Input
           data-ocid="employees.search_input"
@@ -196,118 +209,135 @@ export default function EmployeeList() {
           onChange={(e) => setSearch(e.target.value)}
           className="pl-9"
         />
-      </div>
+      </motion.div>
 
-      <Card className="rounded-xl overflow-hidden">
-        <CardContent className="p-0">
-          {isLoading ? (
-            <div className="p-6 space-y-3" data-ocid="employees.loading_state">
-              {[1, 2, 3, 4].map((i) => (
-                <Skeleton key={i} className="h-16 rounded-lg" />
-              ))}
-            </div>
-          ) : filtered.length === 0 ? (
-            <div
-              className="flex flex-col items-center py-16 text-muted-foreground"
-              data-ocid="employees.empty_state"
-            >
-              <Users className="w-12 h-12 mb-3 opacity-20" />
-              <p className="text-sm font-medium">
-                {search ? "No employees match your search" : "No employees yet"}
-              </p>
-              {!search && (
-                <p className="text-xs mt-1 opacity-70">
-                  Click &ldquo;Add Employee&rdquo; to get started
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.15 }}
+      >
+        <Card className="rounded-xl overflow-hidden">
+          <CardContent className="p-0">
+            {isLoading ? (
+              <div
+                className="p-6 space-y-3"
+                data-ocid="employees.loading_state"
+              >
+                {[1, 2, 3, 4].map((i) => (
+                  <Skeleton key={i} className="h-16 rounded-lg" />
+                ))}
+              </div>
+            ) : filtered.length === 0 ? (
+              <div
+                className="flex flex-col items-center py-16 text-muted-foreground"
+                data-ocid="employees.empty_state"
+              >
+                <Users className="w-12 h-12 mb-3 opacity-20" />
+                <p className="text-sm font-medium">
+                  {search
+                    ? "No employees match your search"
+                    : "No employees yet"}
                 </p>
-              )}
-            </div>
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/40">
-                    <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                      Employee
-                    </th>
-                    <th className="text-left px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">
-                      Department
-                    </th>
-                    <th className="text-left px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
-                      Mobile
-                    </th>
-                    <th className="text-right px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
-                      Monthly
-                    </th>
-                    <th className="text-right px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">
-                      Daily
-                    </th>
-                    <th className="px-4 py-3.5" />
-                  </tr>
-                </thead>
-                <tbody>
-                  {filtered.map((emp, idx) => (
-                    <tr
-                      key={emp.id}
-                      className="border-b last:border-0 hover:bg-muted/30 transition-colors group"
-                      data-ocid={`employees.item.${idx + 1}`}
-                    >
-                      <td className="px-5 py-3.5">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0">
-                            {emp.name.slice(0, 2).toUpperCase()}
-                          </div>
-                          <div>
-                            <div className="font-semibold">{emp.name}</div>
-                            <div className="text-xs text-muted-foreground mt-0.5">
-                              {emp.id}
+                {!search && (
+                  <p className="text-xs mt-1 opacity-70">
+                    Click &ldquo;Add Employee&rdquo; to get started
+                  </p>
+                )}
+              </div>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/40">
+                      <th className="text-left px-5 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                        Employee
+                      </th>
+                      <th className="text-left px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden md:table-cell">
+                        Department
+                      </th>
+                      <th className="text-left px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden lg:table-cell">
+                        Mobile
+                      </th>
+                      <th className="text-right px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide">
+                        Monthly
+                      </th>
+                      <th className="text-right px-4 py-3.5 font-semibold text-muted-foreground text-xs uppercase tracking-wide hidden sm:table-cell">
+                        Daily
+                      </th>
+                      <th className="px-4 py-3.5" />
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {filtered.map((emp, idx) => (
+                      <motion.tr
+                        key={emp.id}
+                        initial={{ opacity: 0, x: -14 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ duration: 0.3, delay: idx * 0.04 }}
+                        className="border-b last:border-0 hover:bg-muted/30 transition-colors group"
+                        data-ocid={`employees.item.${idx + 1}`}
+                      >
+                        <td className="px-5 py-3.5">
+                          <div className="flex items-center gap-3">
+                            <motion.div
+                              whileHover={{ scale: 1.12 }}
+                              className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs flex-shrink-0"
+                            >
+                              {emp.name.slice(0, 2).toUpperCase()}
+                            </motion.div>
+                            <div>
+                              <div className="font-semibold">{emp.name}</div>
+                              <div className="text-xs text-muted-foreground mt-0.5">
+                                {emp.id}
+                              </div>
                             </div>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-4 py-3.5 hidden md:table-cell">
-                        <DeptBadge dept={emp.department} />
-                      </td>
-                      <td className="px-4 py-3.5 text-sm text-muted-foreground hidden lg:table-cell">
-                        {emp.phone || "—"}
-                      </td>
-                      <td className="px-4 py-3.5 text-right font-semibold">
-                        {fmtCurrency(Number(emp.monthlySalary))}
-                      </td>
-                      <td className="px-4 py-3.5 text-right text-muted-foreground hidden sm:table-cell">
-                        {fmtCurrency(
-                          Math.round(Number(emp.monthlySalary) / 26),
-                        )}
-                      </td>
-                      <td className="px-4 py-3.5">
-                        <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            data-ocid={`employees.edit_button.${idx + 1}`}
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
-                            onClick={() => openEdit(emp)}
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </Button>
-                          <Button
-                            data-ocid={`employees.delete_button.${idx + 1}`}
-                            variant="ghost"
-                            size="icon"
-                            className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
-                            onClick={() => setDeleteTarget(emp)}
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </Button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                        </td>
+                        <td className="px-4 py-3.5 hidden md:table-cell">
+                          <DeptBadge dept={emp.department} />
+                        </td>
+                        <td className="px-4 py-3.5 text-sm text-muted-foreground hidden lg:table-cell">
+                          {emp.phone || "\u2014"}
+                        </td>
+                        <td className="px-4 py-3.5 text-right font-semibold">
+                          {fmtCurrency(Number(emp.monthlySalary))}
+                        </td>
+                        <td className="px-4 py-3.5 text-right text-muted-foreground hidden sm:table-cell">
+                          {fmtCurrency(
+                            Math.round(Number(emp.monthlySalary) / 26),
+                          )}
+                        </td>
+                        <td className="px-4 py-3.5">
+                          <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                            <Button
+                              data-ocid={`employees.edit_button.${idx + 1}`}
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 hover:bg-primary/10 hover:text-primary"
+                              onClick={() => openEdit(emp)}
+                            >
+                              <Pencil className="w-3.5 h-3.5" />
+                            </Button>
+                            <Button
+                              data-ocid={`employees.delete_button.${idx + 1}`}
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 text-destructive hover:text-destructive hover:bg-destructive/10"
+                              onClick={() => setDeleteTarget(emp)}
+                            >
+                              <Trash2 className="w-3.5 h-3.5" />
+                            </Button>
+                          </div>
+                        </td>
+                      </motion.tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
       <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
         <DialogContent className="sm:max-w-md" data-ocid="employees.dialog">
@@ -326,7 +356,7 @@ export default function EmployeeList() {
                     </Label>
                     <Input
                       data-ocid="employees.id.input"
-                      placeholder="Employee ID"
+                      placeholder="e.g. EMP001"
                       value={form.id}
                       onChange={(e) =>
                         setForm((f) => ({ ...f, id: e.target.value }))
@@ -375,7 +405,7 @@ export default function EmployeeList() {
                   </Label>
                   <Input
                     data-ocid="employees.phone.input"
-                    placeholder="Mobile Number"
+                    placeholder="e.g. 9876543210"
                     type="tel"
                     value={form.phone}
                     onChange={(e) =>
@@ -411,11 +441,12 @@ export default function EmployeeList() {
             )}
             <div className="space-y-1.5">
               <Label>
-                Monthly Salary (₹) <span className="text-destructive">*</span>
+                Monthly Salary (\u20B9){" "}
+                <span className="text-destructive">*</span>
               </Label>
               <Input
                 data-ocid="employees.salary.input"
-                placeholder="Monthly Salary"
+                placeholder="e.g. 25000"
                 type="number"
                 min="0"
                 value={form.monthlySalary}
@@ -433,7 +464,7 @@ export default function EmployeeList() {
                         Math.round(Number.parseFloat(form.monthlySalary) / 26),
                       )}
                     </span>{" "}
-                    (÷ 26 working days)
+                    (\u00F7 26 working days)
                   </p>
                 )}
             </div>

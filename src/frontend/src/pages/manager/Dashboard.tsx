@@ -18,7 +18,8 @@ import {
   UserX,
   Users,
 } from "lucide-react";
-import { useMemo, useState } from "react";
+import { motion } from "motion/react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useActor } from "../../hooks/useActor";
 import {
   useAttendanceByMonth,
@@ -42,6 +43,33 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   },
 };
 
+function useCountUp(target: number, duration = 1200) {
+  const [count, setCount] = useState(0);
+  const frameRef = useRef<number | null>(null);
+  const startRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    if (target === 0) {
+      setCount(0);
+      return;
+    }
+    startRef.current = null;
+    const step = (timestamp: number) => {
+      if (!startRef.current) startRef.current = timestamp;
+      const progress = Math.min((timestamp - startRef.current) / duration, 1);
+      const eased = 1 - (1 - progress) ** 3;
+      setCount(Math.round(eased * target));
+      if (progress < 1) frameRef.current = requestAnimationFrame(step);
+    };
+    frameRef.current = requestAnimationFrame(step);
+    return () => {
+      if (frameRef.current) cancelAnimationFrame(frameRef.current);
+    };
+  }, [target, duration]);
+
+  return count;
+}
+
 interface StatCardProps {
   label: string;
   value: number;
@@ -49,6 +77,7 @@ interface StatCardProps {
   gradient: string;
   onClick: () => void;
   ocid: string;
+  delay: number;
 }
 
 function StatCard({
@@ -58,23 +87,49 @@ function StatCard({
   gradient,
   onClick,
   ocid,
+  delay,
 }: StatCardProps) {
+  const count = useCountUp(value);
+
   return (
-    <Card
-      className="rounded-2xl cursor-pointer hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 overflow-hidden border-0 shadow-md"
-      onClick={onClick}
-      data-ocid={ocid}
+    <motion.div
+      initial={{ opacity: 0, scale: 0.85, y: 20 }}
+      animate={{ opacity: 1, scale: 1, y: 0 }}
+      transition={{
+        duration: 0.45,
+        delay,
+        type: "spring",
+        stiffness: 280,
+        damping: 22,
+      }}
+      whileHover={{ scale: 1.04, y: -4 }}
+      whileTap={{ scale: 0.97 }}
     >
-      <CardContent className="p-0">
-        <div className={`${gradient} p-5`}>
-          <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-4 text-white">
-            {icon}
+      <Card
+        className="rounded-2xl cursor-pointer overflow-hidden border-0 shadow-md"
+        onClick={onClick}
+        data-ocid={ocid}
+      >
+        <CardContent className="p-0">
+          <div className={`${gradient} p-5`}>
+            <motion.div
+              className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center mb-4 text-white"
+              whileHover={{ rotate: 15, scale: 1.1 }}
+              transition={{ type: "spring", stiffness: 400, damping: 15 }}
+            >
+              {icon}
+            </motion.div>
+            <motion.div
+              key={count}
+              className="text-3xl font-bold text-white mb-1"
+            >
+              {count}
+            </motion.div>
+            <div className="text-sm text-white/80 font-medium">{label}</div>
           </div>
-          <div className="text-3xl font-bold text-white mb-1">{value}</div>
-          <div className="text-sm text-white/80 font-medium">{label}</div>
-        </div>
-      </CardContent>
-    </Card>
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }
 
@@ -148,7 +203,12 @@ export default function Dashboard({
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-start justify-between">
+      <motion.div
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex items-start justify-between"
+      >
         <div>
           <h1 className="font-display font-bold text-2xl">Dashboard</h1>
           <p className="text-muted-foreground text-sm mt-1">{dateLabel}</p>
@@ -161,7 +221,7 @@ export default function Dashboard({
         >
           Clear All Data
         </Button>
-      </div>
+      </motion.div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {empLoading || attLoading ? (
@@ -177,6 +237,7 @@ export default function Dashboard({
               gradient="bg-gradient-to-br from-[oklch(0.55_0.18_240)] to-[oklch(0.42_0.2_260)]"
               onClick={() => onNavigate("employees")}
               ocid="dashboard.employees.card"
+              delay={0}
             />
             <StatCard
               label="Present Today"
@@ -185,6 +246,7 @@ export default function Dashboard({
               gradient="bg-gradient-to-br from-[oklch(0.55_0.18_145)] to-[oklch(0.44_0.2_155)]"
               onClick={() => onNavigate("attendance")}
               ocid="dashboard.attendance.card"
+              delay={0.1}
             />
             <StatCard
               label="Absent Today"
@@ -193,6 +255,7 @@ export default function Dashboard({
               gradient="bg-gradient-to-br from-[oklch(0.56_0.22_25)] to-[oklch(0.46_0.2_15)]"
               onClick={() => onNavigate("attendance")}
               ocid="dashboard.absent.card"
+              delay={0.2}
             />
             <StatCard
               label="Holidays"
@@ -201,74 +264,84 @@ export default function Dashboard({
               gradient="bg-gradient-to-br from-[oklch(0.66_0.18_65)] to-[oklch(0.55_0.2_55)]"
               onClick={() => onNavigate("holidays")}
               ocid="dashboard.holidays.card"
+              delay={0.3}
             />
           </>
         )}
       </div>
 
-      <Card className="rounded-xl">
-        <CardHeader className="flex flex-row items-center gap-2 pb-3">
-          <TrendingUp className="w-5 h-5 text-primary" />
-          <CardTitle className="text-base">
-            Recent Attendance Activity
-          </CardTitle>
-        </CardHeader>
-        <CardContent>
-          {attLoading ? (
-            <div
-              className="space-y-3"
-              data-ocid="dashboard.attendance.loading_state"
-            >
-              {[1, 2, 3, 4, 5].map((i) => (
-                <Skeleton key={i} className="h-12 rounded-lg" />
-              ))}
-            </div>
-          ) : recentRecords.length === 0 ? (
-            <div
-              className="text-center py-10 text-muted-foreground"
-              data-ocid="dashboard.attendance.empty_state"
-            >
-              <CalendarX2 className="w-10 h-10 mx-auto mb-2 opacity-25" />
-              <p className="text-sm">No attendance records yet this month</p>
-            </div>
-          ) : (
-            <div className="divide-y divide-border/60">
-              {recentRecords.map((rec, idx) => {
-                const badge = STATUS_BADGE[rec.status] ?? {
-                  label: rec.status,
-                  cls: "",
-                };
-                return (
-                  <div
-                    key={rec.id}
-                    className="flex items-center justify-between py-3"
-                    data-ocid={`dashboard.attendance.item.${idx + 1}`}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
-                        {(empMap[rec.employeeId] ?? "?")
-                          .slice(0, 2)
-                          .toUpperCase()}
-                      </div>
-                      <div>
-                        <div className="text-sm font-semibold">
-                          {empMap[rec.employeeId] ?? rec.employeeId}
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4, delay: 0.35 }}
+      >
+        <Card className="rounded-xl">
+          <CardHeader className="flex flex-row items-center gap-2 pb-3">
+            <TrendingUp className="w-5 h-5 text-primary" />
+            <CardTitle className="text-base">
+              Recent Attendance Activity
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {attLoading ? (
+              <div
+                className="space-y-3"
+                data-ocid="dashboard.attendance.loading_state"
+              >
+                {[1, 2, 3, 4, 5].map((i) => (
+                  <Skeleton key={i} className="h-12 rounded-lg" />
+                ))}
+              </div>
+            ) : recentRecords.length === 0 ? (
+              <div
+                className="text-center py-10 text-muted-foreground"
+                data-ocid="dashboard.attendance.empty_state"
+              >
+                <CalendarX2 className="w-10 h-10 mx-auto mb-2 opacity-25" />
+                <p className="text-sm">No attendance records yet this month</p>
+              </div>
+            ) : (
+              <div className="divide-y divide-border/60">
+                {recentRecords.map((rec, idx) => {
+                  const badge = STATUS_BADGE[rec.status] ?? {
+                    label: rec.status,
+                    cls: "",
+                  };
+                  return (
+                    <motion.div
+                      key={rec.id}
+                      initial={{ opacity: 0, x: -16 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: idx * 0.04 }}
+                      className="flex items-center justify-between py-3"
+                      data-ocid={`dashboard.attendance.item.${idx + 1}`}
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xs">
+                          {(empMap[rec.employeeId] ?? "?")
+                            .slice(0, 2)
+                            .toUpperCase()}
                         </div>
-                        <div className="text-xs text-muted-foreground">
-                          {rec.date}
+                        <div>
+                          <div className="text-sm font-semibold">
+                            {empMap[rec.employeeId] ?? rec.employeeId}
+                          </div>
+                          <div className="text-xs text-muted-foreground">
+                            {rec.date}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                    <span className={`text-xs font-medium ${badge.cls}`}>
-                      {badge.label}
-                    </span>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </CardContent>
-      </Card>
+                      <span className={`text-xs font-medium ${badge.cls}`}>
+                        {badge.label}
+                      </span>
+                    </motion.div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      </motion.div>
 
       <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
         <DialogContent data-ocid="dashboard.clear.dialog">

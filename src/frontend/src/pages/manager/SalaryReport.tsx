@@ -18,6 +18,7 @@ import {
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DollarSign, FileText, Loader2 } from "lucide-react";
+import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import type { Employee } from "../../backend.d";
@@ -233,22 +234,29 @@ export default function SalaryReport() {
 
   return (
     <div className="p-6 space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <motion.div
+        initial={{ opacity: 0, y: -16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+        className="flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+      >
         <div>
           <h1 className="font-display font-bold text-2xl">Salary Report</h1>
           <p className="text-muted-foreground text-sm mt-1">
             Calculate and record salary payments
           </p>
         </div>
-        <Button
-          size="sm"
-          onClick={handleDownloadSalaryReport}
-          data-ocid="salary.download_report_button"
-          className="gap-1.5"
-        >
-          <FileText className="w-4 h-4" /> Download Salary Report
-        </Button>
-      </div>
+        <motion.div whileTap={{ scale: 0.95 }}>
+          <Button
+            size="sm"
+            onClick={handleDownloadSalaryReport}
+            data-ocid="salary.download_report_button"
+            className="gap-1.5"
+          >
+            <FileText className="w-4 h-4" /> Download Salary Report
+          </Button>
+        </motion.div>
+      </motion.div>
       <div className="flex gap-3">
         <Select value={selectedMonth} onValueChange={setSelectedMonth}>
           <SelectTrigger className="w-36" data-ocid="salary.month.select">
@@ -325,8 +333,11 @@ export default function SalaryReport() {
                 </thead>
                 <tbody>
                   {report.map((row, idx) => (
-                    <tr
+                    <motion.tr
                       key={row.emp.id}
+                      initial={{ opacity: 0, x: -14 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ duration: 0.3, delay: idx * 0.04 }}
                       className="border-b last:border-0 hover:bg-muted/20"
                       data-ocid={`salary.item.${idx + 1}`}
                     >
@@ -382,7 +393,7 @@ export default function SalaryReport() {
                           Pay
                         </Button>
                       </td>
-                    </tr>
+                    </motion.tr>
                   ))}
                 </tbody>
               </table>
