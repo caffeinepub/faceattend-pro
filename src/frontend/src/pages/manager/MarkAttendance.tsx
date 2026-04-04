@@ -2,7 +2,14 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Check, Loader2, MinusCircle, Users, X } from "lucide-react";
+import {
+  CalendarDays,
+  Check,
+  Loader2,
+  MinusCircle,
+  Users,
+  X,
+} from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import {
@@ -32,11 +39,25 @@ function getInitials(name: string) {
   return name.slice(0, 2).toUpperCase();
 }
 
+function formatDateLabel(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  return date.toLocaleDateString("en-IN", {
+    weekday: "long",
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export default function MarkAttendance() {
-  const now = new Date();
-  const today = now.toISOString().slice(0, 10);
-  const year = String(now.getFullYear());
-  const month = String(now.getMonth() + 1).padStart(2, "0");
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [selectedDate, setSelectedDate] = useState(todayStr);
+
+  const [yearStr, monthStr] = selectedDate.split("-");
+  const year = yearStr;
+  const month = monthStr.padStart(2, "0");
+  const dateStr = selectedDate;
 
   const { data: employees = [], isLoading: empLoading } = useEmployees();
   const { data: attendance = [], isLoading: attLoading } = useAttendanceByMonth(
@@ -50,15 +71,15 @@ export default function MarkAttendance() {
   const todayMap = useMemo(() => {
     const m: Record<string, string> = {};
     for (const rec of attendance) {
-      if (rec.date === today) m[rec.employeeId] = rec.status;
+      if (rec.date === dateStr) m[rec.employeeId] = rec.status;
     }
     return m;
-  }, [attendance, today]);
+  }, [attendance, dateStr]);
 
   const handleMark = async (employeeId: string, status: string) => {
     setMarking((prev) => ({ ...prev, [employeeId]: true }));
     try {
-      await markMut.mutateAsync({ employeeId, date: today, status });
+      await markMut.mutateAsync({ employeeId, date: dateStr, status });
       toast.success(`Marked as ${status}`);
       setEditingIds((prev) => ({ ...prev, [employeeId]: false }));
     } catch (err: any) {
@@ -79,13 +100,7 @@ export default function MarkAttendance() {
 
   const isLoading = empLoading || attLoading;
   const markedCount = Object.keys(todayMap).length;
-
-  const dateLabel = now.toLocaleDateString("en-IN", {
-    weekday: "long",
-    year: "numeric",
-    month: "long",
-    day: "numeric",
-  });
+  const dateLabel = formatDateLabel(selectedDate);
 
   return (
     <div className="p-4 sm:p-6 max-w-2xl mx-auto space-y-5">
@@ -97,6 +112,46 @@ export default function MarkAttendance() {
           </h1>
           <p className="text-muted-foreground text-sm mt-0.5">{dateLabel}</p>
         </div>
+
+        {/* Date Picker */}
+        <div className="flex items-center gap-2.5 flex-wrap">
+          <div className="flex items-center gap-2 rounded-xl border border-border bg-card px-3 py-2 shadow-sm">
+            <CalendarDays className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+            <label
+              htmlFor="attendance-date"
+              className="text-xs font-medium text-muted-foreground whitespace-nowrap"
+            >
+              Select Date:
+            </label>
+            <input
+              id="attendance-date"
+              type="date"
+              value={selectedDate}
+              max={todayStr}
+              onChange={(e) => {
+                if (e.target.value) {
+                  setSelectedDate(e.target.value);
+                  setEditingIds({});
+                }
+              }}
+              className="border-0 bg-transparent text-sm text-foreground focus:outline-none focus:ring-0 cursor-pointer"
+              data-ocid="attendance.date_input"
+            />
+          </div>
+          {selectedDate !== todayStr && (
+            <button
+              type="button"
+              onClick={() => {
+                setSelectedDate(todayStr);
+                setEditingIds({});
+              }}
+              className="text-xs text-primary font-medium hover:underline underline-offset-2 transition-colors"
+            >
+              Back to Today
+            </button>
+          )}
+        </div>
+
         <div className="flex items-center justify-between">
           <p className="text-sm text-muted-foreground">
             <span className="font-semibold text-foreground">{markedCount}</span>

@@ -1,28 +1,26 @@
-# PE Office Management - Welcome Splash Animation
+# FaceAttend Pro — Date-Selectable Attendance Marking
 
 ## Current State
-App opens directly to LandingPage with basic fade-in motion. No splash screen or welcome animation exists. App name shows as "AttendPro".
+The Mark Attendance page (`MarkAttendance.tsx`) is hardcoded to mark attendance for today's date only. The year/month are derived from `new Date()` and the date string is always `today`. There is no way for the manager to pick a different date.
 
 ## Requested Changes (Diff)
 
 ### Add
-- A full-screen animated splash screen component (SplashScreen.tsx) that appears when the app first loads
-- Shows "Welcome to PE Office Management" with professional staggered animations
-- Animated logo/icon, company name, tagline, and loading progress bar
-- Auto-dismisses after ~3 seconds then transitions smoothly to LandingPage
+- A date picker at the top of the Mark Attendance page that defaults to today but lets the manager select any past or future date.
+- When the date changes, attendance records shown are loaded for that specific date (using `useAttendanceByMonth` with the selected month/year, then filtered by exact date).
+- Manager can mark Present / Absent / Half Day for any employee on the selected date.
+- Edit button still works to change an already-marked status for the selected date.
 
 ### Modify
-- App.tsx: Add splash screen state that shows SplashScreen first, then transitions to LandingPage
-- LandingPage.tsx: Update branding from "AttendPro" to "PE Office Management"
+- `MarkAttendance.tsx`: replace the hardcoded `today` date with a `selectedDate` state controlled by a date input. Load attendance month data based on `selectedDate`'s year and month. Filter the attendance map by `selectedDate` instead of `today`.
 
 ### Remove
-- Nothing removed
+- Nothing removed.
 
 ## Implementation Plan
-1. Create `src/frontend/src/components/SplashScreen.tsx` with full-screen animated welcome
-   - Animated background with floating particles or gradient shimmer
-   - Staggered entrance: logo icon → company name → tagline → loading bar
-   - Professional color scheme matching existing dark theme
-   - Exits with fade/scale-out after 3s
-2. Update `App.tsx` to show SplashScreen first (showSplash state), then LandingPage
-3. Update LandingPage header branding to "PE Office Management"
+1. Add a `<input type="date">` or styled date selector at the top of `MarkAttendance.tsx`, defaulting to today.
+2. Derive `year`, `month`, and `dateStr` from `selectedDate` state instead of `new Date()`.
+3. Pass `selectedDate`-based year/month to `useAttendanceByMonth`.
+4. Filter `todayMap` by `selectedDate` (exact date string).
+5. Pass `selectedDate` as the `date` argument to `handleMark` instead of `today`.
+6. Show human-readable label for the selected date.
