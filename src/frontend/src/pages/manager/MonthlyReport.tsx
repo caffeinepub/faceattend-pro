@@ -8,7 +8,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Skeleton } from "@/components/ui/skeleton";
-import { BarChart3, Download, FileText } from "lucide-react";
+import { BarChart3, Download } from "lucide-react";
 import { motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { useAttendanceByMonth, useEmployees } from "../../hooks/useQueries";
@@ -71,121 +71,26 @@ export default function MonthlyReport() {
     [report],
   );
 
-  const handleDownloadAttendanceReport = () => {
-    const monthName = MONTHS[Number(selectedMonth) - 1];
-
-    const tableRows = report
-      .map((r, idx) => {
-        const rowBg = idx % 2 === 0 ? "#ffffff" : "#f9fafb";
-        const total = r.present + r.absent + r.halfday;
-        const attendancePct =
-          total > 0
-            ? Math.round(((r.present + r.halfday * 0.5) / total) * 100)
-            : 0;
-        return `
-          <tr style="background:${rowBg}">
-            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;">${r.emp.id}</td>
-            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;font-weight:500">${r.emp.name}</td>
-            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;color:#6b7280">${r.emp.department}</td>
-            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;text-align:center;font-weight:600;color:#16a34a">${r.present}</td>
-            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;text-align:center;font-weight:600;color:#dc2626">${r.absent}</td>
-            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;text-align:center;font-weight:600;color:#d97706">${r.halfday}</td>
-            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;text-align:center;">${total}</td>
-            <td style="padding:10px 14px;border-bottom:1px solid #e5e7eb;text-align:center;font-weight:600;color:${attendancePct >= 75 ? "#16a34a" : "#dc2626"}">${attendancePct}%</td>
-          </tr>`;
-      })
-      .join("");
-
-    const html = `<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <title>Monthly Attendance Report - ${monthName} ${selectedYear}</title>
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: Arial, sans-serif; color: #1f2937; background: #fff; padding: 32px; }
-    .header { text-align: center; margin-bottom: 28px; border-bottom: 2px solid #1e40af; padding-bottom: 16px; }
-    .header h1 { font-size: 22px; font-weight: 700; color: #1e40af; letter-spacing: 0.5px; }
-    .header p { font-size: 13px; color: #6b7280; margin-top: 4px; }
-    .period { text-align: center; font-size: 16px; font-weight: 600; color: #111827; margin-bottom: 20px; }
-    .meta-row { display: flex; justify-content: space-between; font-size: 12px; color: #9ca3af; margin-bottom: 20px; }
-    table { width: 100%; border-collapse: collapse; font-size: 14px; }
-    thead tr { background: #1e40af; color: white; }
-    thead th { padding: 12px 14px; text-align: left; font-weight: 600; letter-spacing: 0.03em; }
-    thead th.center { text-align: center; }
-    tfoot tr { background: #f3f4f6; }
-    tfoot td { padding: 12px 14px; font-weight: 700; border-top: 2px solid #e5e7eb; }
-    .summary { display: flex; gap: 24px; margin-top: 28px; flex-wrap: wrap; }
-    .summary-card { flex: 1; min-width: 140px; border: 1px solid #e5e7eb; border-radius: 8px; padding: 16px; text-align: center; }
-    .summary-card .label { font-size: 12px; color: #6b7280; margin-bottom: 6px; }
-    .summary-card .value { font-size: 24px; font-weight: 700; }
-    .print-btn { margin: 24px 0 0; display: flex; justify-content: center; }
-    .print-btn button { padding: 10px 28px; background: #1e40af; color: white; border: none; border-radius: 6px; font-size: 14px; font-weight: 600; cursor: pointer; }
-    .print-btn button:hover { background: #1d4ed8; }
-    @media print { .print-btn { display: none; } body { padding: 16px; } }
-  </style>
-</head>
-<body>
-  <div class="header">
-    <h1>PE Office Management</h1>
-    <p>Monthly Attendance Report</p>
-  </div>
-  <div class="period">${monthName} ${selectedYear}</div>
-  <div class="meta-row">
-    <span>Total Employees: ${report.length}</span>
-    <span>Generated: ${new Date().toLocaleDateString("en-IN")}</span>
-  </div>
-  <table>
-    <thead>
-      <tr>
-        <th>Employee ID</th>
-        <th>Name</th>
-        <th>Department</th>
-        <th class="center" style="color:#bbf7d0">Present</th>
-        <th class="center" style="color:#fca5a5">Absent</th>
-        <th class="center" style="color:#fde68a">Half Day</th>
-        <th class="center">Total</th>
-        <th class="center">Attendance %</th>
-      </tr>
-    </thead>
-    <tbody>${tableRows}</tbody>
-    <tfoot>
-      <tr>
-        <td colspan="3">TOTALS</td>
-        <td style="text-align:center;color:#16a34a">${totals.present}</td>
-        <td style="text-align:center;color:#dc2626">${totals.absent}</td>
-        <td style="text-align:center;color:#d97706">${totals.halfday}</td>
-        <td style="text-align:center">${totals.present + totals.absent + totals.halfday}</td>
-        <td style="text-align:center">—</td>
-      </tr>
-    </tfoot>
-  </table>
-  <div class="summary">
-    <div class="summary-card">
-      <div class="label">Total Present</div>
-      <div class="value" style="color:#16a34a">${totals.present}</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">Total Absent</div>
-      <div class="value" style="color:#dc2626">${totals.absent}</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">Half Days</div>
-      <div class="value" style="color:#d97706">${totals.halfday}</div>
-    </div>
-    <div class="summary-card">
-      <div class="label">Employees</div>
-      <div class="value" style="color:#1e40af">${report.length}</div>
-    </div>
-  </div>
-  <div class="print-btn"><button onclick="window.print()">Print Report</button></div>
-</body>
-</html>`;
-
-    const blob = new Blob([html], { type: "text/html" });
+  const handleExport = () => {
+    const rows = [
+      ["Employee ID", "Name", "Department", "Present", "Absent", "Half Day"],
+      ...report.map((r) => [
+        r.emp.id,
+        r.emp.name,
+        r.emp.department,
+        r.present,
+        r.absent,
+        r.halfday,
+      ]),
+    ];
+    const csv = rows.map((r) => r.join(",")).join("\n");
+    const blob = new Blob([csv], { type: "text/csv" });
     const url = URL.createObjectURL(blob);
-    window.open(url, "_blank");
-    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `attendance-${selectedYear}-${selectedMonth}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
   };
 
   return (
@@ -204,12 +109,13 @@ export default function MonthlyReport() {
         </div>
         <motion.div whileTap={{ scale: 0.95 }}>
           <Button
+            variant="outline"
             size="sm"
-            onClick={handleDownloadAttendanceReport}
-            data-ocid="monthly.download_report_button"
+            onClick={handleExport}
+            data-ocid="monthly.export_button"
             className="gap-1.5"
           >
-            <FileText className="w-4 h-4" /> Download Attendance Report
+            <Download className="w-4 h-4" /> Export CSV
           </Button>
         </motion.div>
       </motion.div>
@@ -244,39 +150,6 @@ export default function MonthlyReport() {
             ))}
           </SelectContent>
         </Select>
-      </motion.div>
-
-      {/* Summary Cards */}
-      <motion.div
-        initial={{ opacity: 0, y: 10 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.3, delay: 0.12 }}
-        className="grid grid-cols-3 gap-3"
-      >
-        <Card className="rounded-xl border-success/30">
-          <CardContent className="p-4 text-center">
-            <div className="text-3xl font-bold text-success">
-              {totals.present}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Present</div>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl border-destructive/30">
-          <CardContent className="p-4 text-center">
-            <div className="text-3xl font-bold text-destructive">
-              {totals.absent}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Absent</div>
-          </CardContent>
-        </Card>
-        <Card className="rounded-xl border-warning/30">
-          <CardContent className="p-4 text-center">
-            <div className="text-3xl font-bold text-warning-foreground">
-              {totals.halfday}
-            </div>
-            <div className="text-xs text-muted-foreground mt-1">Half Day</div>
-          </CardContent>
-        </Card>
       </motion.div>
 
       <motion.div
