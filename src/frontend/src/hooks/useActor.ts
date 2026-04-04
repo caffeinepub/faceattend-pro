@@ -20,12 +20,15 @@ export function useActor() {
     },
     staleTime: Number.POSITIVE_INFINITY,
     retry: 3,
-    retryDelay: (attempt) => Math.min(1000 * 2 ** attempt, 10000),
+    retryDelay: 1000,
   });
 
   useEffect(() => {
     if (actorQuery.data) {
       queryClient.invalidateQueries({
+        predicate: (query) => !query.queryKey.includes(ACTOR_QUERY_KEY),
+      });
+      queryClient.refetchQueries({
         predicate: (query) => !query.queryKey.includes(ACTOR_QUERY_KEY),
       });
     }

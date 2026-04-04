@@ -1,9 +1,24 @@
-// Stub — Internet Identity is not used in this app.
-// All backend calls use an anonymous actor.
-export type Status = "idle";
+import type { Identity } from "@icp-sdk/core/agent";
+// Internet Identity is NOT used in this app.
+// This is a stub to satisfy any lingering imports.
+import {
+  type PropsWithChildren,
+  type ReactNode,
+  createContext,
+  createElement,
+  useContext,
+  useMemo,
+} from "react";
+
+export type Status =
+  | "initializing"
+  | "idle"
+  | "logging-in"
+  | "success"
+  | "loginError";
 
 export type InternetIdentityContext = {
-  identity: undefined;
+  identity?: Identity;
   login: () => void;
   clear: () => void;
   loginStatus: Status;
@@ -12,15 +27,13 @@ export type InternetIdentityContext = {
   isLoggingIn: boolean;
   isLoginSuccess: boolean;
   isLoginError: boolean;
-  loginError: undefined;
+  loginError?: Error;
 };
 
-const noop = () => {};
-
-const stubContext: InternetIdentityContext = {
+const defaultCtx: InternetIdentityContext = {
   identity: undefined,
-  login: noop,
-  clear: noop,
+  login: () => {},
+  clear: () => {},
   loginStatus: "idle",
   isInitializing: false,
   isLoginIdle: true,
@@ -30,16 +43,19 @@ const stubContext: InternetIdentityContext = {
   loginError: undefined,
 };
 
-export function useInternetIdentity(): InternetIdentityContext {
-  return stubContext;
-}
+const InternetIdentityReactContext =
+  createContext<InternetIdentityContext>(defaultCtx);
 
-import { type ReactNode, createElement } from "react";
+export const useInternetIdentity = (): InternetIdentityContext => {
+  return useContext(InternetIdentityReactContext);
+};
 
 export function InternetIdentityProvider({
   children,
-}: {
-  children: ReactNode;
-}) {
-  return createElement("div", { style: { display: "contents" } }, children);
+}: PropsWithChildren<{ children: ReactNode; createOptions?: unknown }>) {
+  const value = useMemo(() => defaultCtx, []);
+  return createElement(InternetIdentityReactContext.Provider, {
+    value,
+    children,
+  });
 }
