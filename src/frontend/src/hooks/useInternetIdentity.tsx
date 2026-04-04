@@ -1,5 +1,5 @@
 import type { Identity } from "@icp-sdk/core/agent";
-// Internet Identity removed — app uses anonymous actor only.
+// Internet Identity completely removed — app uses anonymous actor only.
 import { createContext, useContext } from "react";
 
 export type Status = "idle";
