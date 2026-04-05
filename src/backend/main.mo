@@ -188,6 +188,14 @@ actor {
     record;
   };
 
+  public shared func removeAttendance(employeeId : Text, date : Text) : async Bool {
+    let key = employeeId # "_" # date;
+    switch (attendanceStore.get(key)) {
+      case null { false };
+      case (?_) { attendanceStore.remove(key); true };
+    };
+  };
+
   public query func getAttendanceByEmployee(employeeId : Text) : async [AttendanceRecord] {
     attendanceStore.values().toArray().filter(
       func(r : AttendanceRecord) : Bool { r.employeeId == employeeId }

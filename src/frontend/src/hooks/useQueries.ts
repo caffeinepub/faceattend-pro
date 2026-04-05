@@ -210,6 +210,22 @@ export function useMarkAttendance() {
   });
 }
 
+export function useRemoveAttendance() {
+  const { actor } = useActor();
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (rec: { employeeId: string; date: string }) => {
+      if (!actor) throw new Error("No actor");
+      return (actor as AnyActor).removeAttendance(rec.employeeId, rec.date);
+    },
+    onSuccess: (_data: any, vars: any) => {
+      const [year, month] = vars.date.split("-");
+      qc.invalidateQueries({ queryKey: ["attendance"] });
+      qc.invalidateQueries({ queryKey: ["attendance-month", year, month] });
+    },
+  });
+}
+
 export function useAddHoliday() {
   const { actor } = useActor();
   const qc = useQueryClient();

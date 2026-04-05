@@ -2,14 +2,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import {
-  CalendarDays,
-  Check,
-  Loader2,
-  MinusCircle,
-  Users,
-  X,
-} from "lucide-react";
+import { CalendarDays, Check, Loader2, Trash2, Users, X } from "lucide-react";
 import { AnimatePresence, motion } from "motion/react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -17,6 +10,7 @@ import {
   useAttendanceByMonth,
   useEmployees,
   useMarkAttendance,
+  useRemoveAttendance,
 } from "../../hooks/useQueries";
 
 const STATUS_CONFIG = {
@@ -66,6 +60,7 @@ export default function MarkAttendance() {
     month,
   );
   const markMut = useMarkAttendance();
+  const removeMut = useRemoveAttendance();
   const [marking, setMarking] = useState<Record<string, boolean>>({});
   const [editingIds, setEditingIds] = useState<Record<string, boolean>>({});
 
@@ -85,6 +80,19 @@ export default function MarkAttendance() {
       setEditingIds((prev) => ({ ...prev, [employeeId]: false }));
     } catch (err: any) {
       toast.error(err?.message ?? "Failed to mark attendance");
+    } finally {
+      setMarking((prev) => ({ ...prev, [employeeId]: false }));
+    }
+  };
+
+  const handleRemove = async (employeeId: string) => {
+    setMarking((prev) => ({ ...prev, [employeeId]: true }));
+    try {
+      await removeMut.mutateAsync({ employeeId, date: dateStr });
+      toast.success("Attendance removed");
+      setEditingIds((prev) => ({ ...prev, [employeeId]: false }));
+    } catch (err: any) {
+      toast.error(err?.message ?? "Failed to remove attendance");
     } finally {
       setMarking((prev) => ({ ...prev, [employeeId]: false }));
     }
@@ -301,11 +309,11 @@ export default function MarkAttendance() {
                           <motion.button
                             type="button"
                             whileTap={{ scale: 0.92 }}
-                            className="inline-flex items-center gap-1 h-8 px-3 rounded-full border border-amber-400 text-amber-700 text-xs font-medium hover:bg-amber-50 transition-colors"
-                            onClick={() => handleMark(emp.id, "halfday")}
-                            data-ocid={`attendance.halfday_button.${idx + 1}`}
+                            className="inline-flex items-center gap-1 h-8 px-3 rounded-full border border-rose-400 text-rose-600 text-xs font-medium hover:bg-rose-50 transition-colors"
+                            onClick={() => handleRemove(emp.id)}
+                            data-ocid={`attendance.remove_button.${idx + 1}`}
                           >
-                            <MinusCircle className="w-3.5 h-3.5" /> Half Day
+                            <Trash2 className="w-3.5 h-3.5" /> Remove
                           </motion.button>
                           <button
                             type="button"
